@@ -1,0 +1,30 @@
+{
+    "manifest_version": 2,
+    "name": "Siphon",
+    "description": "Monitors traffic to data collecting domains",
+    "version": "0",
+    "icons": {
+        "48": "icons/siphon.svg",
+        "96": "icons/siphon.svg"
+    },
+    "browser_specific_settings": {
+        "gecko": {
+            "strict_min_version": "56.0a1"
+        }
+    },
+    "background": {
+        "scripts": [
+            "background/proxy.js"
+        ]
+    },
+    "permissions": [
+        "proxy",
+        "storage",
+        "<all_urls>"
+    ],
+    "browser_action": {
+        "default_icon": "icons/siphon.svg",
+        "default_title": "Siphon",
+        "default_popup": "popup/popup.html"
+    }
+}
