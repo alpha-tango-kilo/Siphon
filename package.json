@@ -1,0 +1,35 @@
+{
+  "name": "siphon",
+  "version": "0.1.0",
+  "description": "Monitors traffic to data collecting domains",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "tsc": "tsc",
+    "dev": "parcel src/manifest.json --host localhost --target dev",
+    "build": "npm run clean && parcel build src/manifest.json --target prod",
+    "clean": "rm -rf dist/**"
+  },
+  "targets": {
+    "dev": {
+      "sourceMap": {
+        "inline": true,
+        "inlineSources": true
+      }
+    },
+    "prod": {
+      "distDir": "dist"
+    }
+  },
+  "repository": {
+    "type": "git"
+  },
+  "author": "alpha-tango-kilo",
+  "license": "MIT",
+  "dependencies": {},
+  "devDependencies": {
+    "@parcel/config-webextension": "^2.0.0-nightly.2151",
+    "parcel": "^2.0.0-nightly.558",
+    "typescript": "^3.9.7",
+    "web-ext-types": "^3.2.1"
+  }
+}
