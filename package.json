@@ -7,7 +7,7 @@
     "tsc": "tsc",
     "dev": "parcel src/manifest.json --host localhost --target dev",
     "build": "npm run clean && parcel build src/manifest.json --target prod",
-    "clean": "rm -rf dist/**"
+    "clean": "rm -rf dist/** build/**"
   },
   "targets": {
     "dev": {
@@ -17,7 +17,7 @@
       }
     },
     "prod": {
-      "distDir": "dist"
+      "distDir": "build"
     }
   },
   "repository": {
