@@ -25,7 +25,11 @@
   },
   "author": "alpha-tango-kilo",
   "license": "MIT",
-  "dependencies": {},
+  "dependencies": {
+    "autoprefixer": "^10.2.4",
+    "postcss": "^8.2.4",
+    "tailwindcss": "^2.0.2"
+  },
   "devDependencies": {
     "@parcel/config-webextension": "^2.0.0-nightly.2151",
     "parcel": "^2.0.0-nightly.558",
