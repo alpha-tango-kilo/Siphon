@@ -2,6 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Making modifications to the default style */
 @layer base {
   ul, ol {
     @apply list-inside leading-tight;
@@ -21,5 +22,17 @@
 
   button {
     @apply border;
+  }
+}
+
+ /* Where custom CSS classes go */
+@layer components {
+  .fake-url {
+    @apply underline text-blue-600 hover:text-blue-800;
+  }
+
+  /* TODO: enlarge slightly on hover */
+  .graph-icon {
+    @apply p-3 w-16 cursor-pointer;
   }
 }

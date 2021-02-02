@@ -4,7 +4,7 @@ module.exports = {
     "src/**/*.js", // only needed if JS can change CSS
     "src/**/*.ts", // only needed if TS can change CSS
   ],
-  darkMode: false, // 'media' is used to let the OS decide; 'class' lets you change it by editing HTML https://tailwindcss.com/docs/dark-mode
+  darkMode: 'class', // 'media' is used to let the OS decide; 'class' lets you change it by editing HTML https://tailwindcss.com/docs/dark-mode
   theme: {
     extend: {},
   },
@@ -17,6 +17,7 @@ module.exports = {
     inset: false,
     order: false,
     zIndex: false,
+    resize: false,
   },
   plugins: [],
 }
