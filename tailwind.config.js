@@ -11,5 +11,12 @@ module.exports = {
   variants: {
     extend: {},
   },
+  corePlugins: {
+    float: false,
+    clear: false,
+    inset: false,
+    order: false,
+    zIndex: false,
+  },
   plugins: [],
 }
