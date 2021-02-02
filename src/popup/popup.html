@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 
-<html>
+<html lang="en" class="text-gray-900">
 
 <head>
     <meta charset="utf-8">
@@ -8,8 +8,47 @@
 </head>
 
 <body>
-    <p>Hello world!</p>
-    <button class="test">Click here</button>
+    <div class="p-4 space-y-4">
+        <div class="flex items-center justify-center space-x-3">
+            <img class="w-8" src="../icons/siphon.svg">
+            <h1 class="">Siphon</h1>
+        </div>
+
+        <div class="block">
+            <h2>Current page statistics</h2>
+            <p>The quick brown fox jumps over the lazy dog.</p>
+        </div>
+        
+        <div class="block">
+            <h2>Informational dialogue</h2>
+            <p>The quick brown fox jumps over the lazy dog.</p>
+        </div>
+
+        <div class="flex space-x-2">
+            <div>
+                <h2>Top trackers for this site (all time)</h2>
+                <ol>
+                    <li>Facebook</li>
+                    <li>Instagram</li>
+                </ol>
+            </div>
+            <img id="trackers-graph-icon" src="../icons/graph.svg" class="p-3 w-16">
+        </div>
+        
+        <div class="flex space-x-2">
+            <img id="trackers-graph-icon" src="../icons/graph.svg" class="p-3 w-16">
+            <div>
+                <h2>Website's rank in data uploaded</h2>
+                <ol>
+                    <li>example.org</li>
+                    <li>current-site.com</li>
+                    <li>example.com</li>
+                </ol>
+            </div>
+        </div>
+
+        <button id="dark-toggle" class="px-2 py-0.5">🌙</button>
+    </div>
     <script src="popup.js"></script>
 </body>
 
