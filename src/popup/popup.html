@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 
-<html lang="en">
+<html lang="en" id="root">
 
 <head>
     <meta charset="utf-8">
@@ -8,50 +8,48 @@
     <link rel="stylesheet" href="../siphon.css" />
 </head>
 
-<body>
-    <div class="p-4 space-y-4 text-gray-900 bg-gray-100 dark:bg-gray-900 dark:text-gray-100">
-        <div class="flex items-center justify-center space-x-3 border border-purple-400 rounded-xl py-3 bg-purple-400 text-black dark:bg-purple-800 dark:border-purple-800 dark:text-gray-50">
-            <img class="w-8" src="../icons/siphon.svg">
-            <h1 class="select-none">Siphon</h1>
-        </div>
-
-        <div class="block">
-            <h2>Current page statistics</h2>
-            <p>The quick brown fox jumps over the lazy dog.</p>
-        </div>
-
-        <div class="block">
-            <h2>Informational dialogue</h2>
-            <p>The quick brown fox jumps over the lazy dog.</p>
-        </div>
-
-        <div class="flex space-x-2">
-            <div>
-                <h2>Top trackers for this site (all time)</h2>
-                <ol class="text-gray-800 dark:text-gray-200">
-                    <li>Facebook</li>
-                    <li>Instagram</li>
-                    <li>Google</li>
-                </ol>
-            </div>
-            <img id="trackers-graph-icon" src="../icons/graph.svg" class="graph-icon">
-        </div>
-
-        <div class="flex space-x-2">
-            <img id="trackers-graph-icon" src="../icons/graph.svg" class="graph-icon">
-            <div>
-                <h2>Website's rank in data uploaded</h2>
-
-                <ol class="text-gray-800 dark:text-gray-200">
-                    <li><span class="fake-url">example.org</span></li>
-                    <li><span class="fake-url">current-site.com</span></li>
-                    <li><span class="fake-url">example.com</span></li>
-                </ol>
-            </div>
-        </div>
-
-        <button id="dark-toggle" class="px-2 py-1 border-3">🌙</button>
+<body class="p-4 space-y-4">
+    <div class="flex items-center justify-center space-x-3 border border-purple-400 rounded-xl py-3 bg-purple-400 text-black dark:bg-purple-800 dark:border-purple-800 dark:text-gray-50">
+        <img class="w-8" src="../icons/siphon.svg">
+        <h1 class="select-none">Siphon</h1>
     </div>
+
+    <div class="block">
+        <h2>Current page statistics</h2>
+        <p>The quick brown fox jumps over the lazy dog.</p>
+    </div>
+
+    <div class="block">
+        <h2>Informational dialogue</h2>
+        <p>The quick brown fox jumps over the lazy dog.</p>
+    </div>
+
+    <div class="flex space-x-2">
+        <div>
+            <h2>Top trackers for this site (all time)</h2>
+            <ol class="text-gray-800 dark:text-gray-200">
+                <li>Facebook</li>
+                <li>Instagram</li>
+                <li>Google</li>
+            </ol>
+        </div>
+        <img id="trackers-graph-icon" src="../icons/graph.svg" class="graph-icon">
+    </div>
+
+    <div class="flex space-x-2">
+        <img id="trackers-graph-icon" src="../icons/graph.svg" class="graph-icon">
+        <div>
+            <h2>Website's rank in data uploaded</h2>
+
+            <ol class="text-gray-800 dark:text-gray-200">
+                <li><span class="fake-url">example.org</span></li>
+                <li><span class="fake-url">current-site.com</span></li>
+                <li><span class="fake-url">example.com</span></li>
+            </ol>
+        </div>
+    </div>
+
+    <button id="dark-toggle" class="px-2 py-1 border-3">🌙</button>
     
     <script src="popup.js"></script>
 </body>
