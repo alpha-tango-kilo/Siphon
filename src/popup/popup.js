@@ -1,5 +1,14 @@
-let darkThemeButton = document.getElementById("dark-toggle");
-darkThemeButton.addEventListener("click", toggleDarkTheme);
+// These have to be added programmatically or Parcel freaks out
+(function init() {
+    let darkThemeButton = document.getElementById("dark-toggle");
+    darkThemeButton.addEventListener("click", toggleDarkTheme);
+
+    let trackersGraphIcon = document.getElementById("trackers-graph-icon");
+    trackersGraphIcon.setAttribute("href", "../graphs/graphs.html?trackers");
+
+    let websiteRankIcon = document.getElementById("webite-rank-icon");
+    websiteRankIcon.setAttribute("href", "../graphs/graphs.html?rank");
+}());
 
 function toggleDarkTheme() {
     // TODO: make changes persistent

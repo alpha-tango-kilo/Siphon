@@ -37,6 +37,6 @@
 
   /* TODO: enlarge slightly on hover */
   .graph-icon {
-    @apply p-3 w-16 cursor-pointer;
+    @apply p-3 w-16;
   }
 }
