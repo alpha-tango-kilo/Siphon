@@ -5,6 +5,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "tsc": "tsc",
+    "graphs": "parcel src/graphs/graphs.html",
     "dev": "parcel src/manifest.json --host localhost --target dev",
     "build": "rm -rf build/** && parcel build src/manifest.json --target prod",
     "ff-dev": "web-ext run -s ./dist --no-reload --pref devtools.toolbox.splitconsoleEnabled=true --start-url about:debugging#/runtime/this-firefox",
