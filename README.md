@@ -13,6 +13,7 @@ Clone the repository and run `npm install`.
 You then have the following tasks available (`npm run <task>`):
 
 * `dev` - uses Parcel to create a live-reloading extension in `./dist`
+* `graphs` - uses Parcel to create a live-reloading graphs page, which can be viewed directly
 * `build` - uses Parcel to create a production build of the extension in `./build`
 * `ff-dev` (**requires `web-ext`**) - opens a Firefox sandbox with Siphon loaded, intended to used concurrently with `dev`
 * `ff-build` (**requires `web-ext`**) - opens a Firefox sandbox with Siphon loaded, to test a final build

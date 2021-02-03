@@ -7,8 +7,47 @@
     <link rel="stylesheet" href="../siphon.css" />
 </head>
 
-<body>
-    <h1>Siphon Graphs Page</h1>
+<body class="p-5 grid lg:h-screen lg:space-x-5 lg:flex">
+    <!-- Left/Top: Logo -->
+    <div class="flex items-center justify-center pb-5">
+        <div class="order-1 flex space-x-3 border border-purple-400 rounded-xl p-3 bg-purple-400 text-black dark:bg-purple-800 dark:border-purple-800 dark:text-gray-50">
+            <img class="w-8" src="../icons/siphon.svg">
+            <h1 class="select-none">Siphon</h1>
+        </div>
+    </div>
+    
+    
+    <!-- Left/Bottom: graph selection & settings -->
+    <div class="order-3 lg:order-2 inline-grid max-w-lg lg:divide-y-2 lg:divide-purple-200 lg:space-y-5">
+        <div class="py-5">
+            <h2>Graph selection</h2>
+            
+            <div>
+                <label for="graph-dropdown">Choose a graph to view</label>
+            </div>
+            <select name="graph-dropdown" class="">
+                <option value="trackers">Top trackers per website</option>
+                <option value="rank">Websites that have shared the most data</option>
+            </select>
+        </div>
+    
+        <div class="lg:py-5">
+            <h2>Graph options</h2>
+            <div id="graph-options">
+                <!-- To be set by script -->
+                <ul>
+                    <li>Foo</li>
+                    <li>Bar</li>
+                    <li>Baz</li>
+                    <li>Qux</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Graph -->
+    <canvas id="chart" class="order-2 lg:order-3 border-2 flex-grow min-w-1/2 w-full min-h-lg"></canvas>
+
     <script src="graphs.ts"></script>
 </body>
 
