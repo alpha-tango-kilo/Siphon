@@ -9,7 +9,7 @@
   }
 
   ul, ol {
-    @apply list-inside leading-tight;
+    @apply list-inside leading-tight text-gray-800 dark:text-gray-200;
   }
     
   ol {
