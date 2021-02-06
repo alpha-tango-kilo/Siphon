@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 
-<html lang="en">
+<html lang="en" id="root">
 <head>
     <title>📊 Siphon</title>
     <meta charset="utf-8">
@@ -8,40 +8,42 @@
 </head>
 
 <!-- Use lg: for when working with landscape layout, otherwise assume portrait/both -->
-<body class="p-5 grid lg:h-screen lg:space-x-5 lg:flex">
-    <!-- Left/Top: Logo -->
-    <div class="flex items-center justify-center pb-5">
-        <div class="order-1 flex space-x-3 border border-purple-400 rounded-xl p-3 bg-purple-400 text-black dark:bg-purple-800 dark:border-purple-800 dark:text-gray-50">
-            <img class="w-8" src="../icons/siphon.svg">
-            <h1 class="select-none lg:w-32">Siphon</h1>
-        </div>
-    </div>
-    
-    
-    <!-- Left/Bottom: graph selection & settings -->
-    <div class="order-3 lg:order-2 inline-grid max-w-lg lg:divide-y-2 lg:divide-purple-200 lg:space-y-5">
-        <div class="py-5">
-            <h2>Graph selection</h2>
-            
-            <div>
-                <label for="graph-dropdown">Choose a graph to view</label>
+<body class="p-4 grid lg:h-screen lg:space-x-5 lg:flex">
+    <!-- Everything that's not the graph -->
+    <div>
+        <!-- Left/Top: Logo -->
+        <div class="flex items-center justify-center lg:pb-5">
+            <div class="order-1 flex space-x-3 p-3 select-none border rounded-xl border-purple-400 bg-purple-400 text-black dark:bg-purple-800 dark:border-purple-800 dark:text-purple-100">
+                <img class="w-8" src="../icons/siphon.svg">
+                <h1>Siphon</h1>
             </div>
-            <select name="graph-dropdown">
-                <option value="trackers">Top trackers per website</option>
-                <option value="rank">Websites that have shared the most data</option>
-            </select>
         </div>
-    
-        <div class="lg:py-5">
-            <h2>Graph options</h2>
-            <div id="graph-options">
-                <!-- To be set by script -->
-                <ul>
-                    <li>Foo</li>
-                    <li>Bar</li>
-                    <li>Baz</li>
-                    <li>Qux</li>
-                </ul>
+        
+        <!-- Left/Bottom: graph selection & settings -->
+        <div class="order-3 lg:order-2 inline-grid w-full divide-y-2 divide-purple-200 dark:divide-purple-500 space-y-5">
+            <div class="pt-5 space-y-1">
+                <h2>Graph selection</h2>
+                
+                <div>
+                    <label for="graph-dropdown">Choose a graph to view</label>
+                </div>
+                <select name="graph-dropdown" class="dark:bg-gray-800 dark:border dark:border-gray-200">
+                    <option value="trackers">Top trackers per website</option>
+                    <option value="rank">Websites that have shared the most data</option>
+                </select>
+            </div>
+        
+            <div class="pt-3 pb-5">
+                <h2>Graph options</h2>
+                <div id="graph-options">
+                    <!-- To be set by script -->
+                    <ul>
+                        <li>Foo</li>
+                        <li>Bar</li>
+                        <li>Baz</li>
+                        <li>Qux</li>
+                    </ul>
+                </div>
             </div>
         </div>
     </div>
