@@ -5,12 +5,20 @@ Siphon uses the following technologies:
 * [Node.js](https://nodejs.org/en/)
 * [Parcel v2](https://github.com/parcel-bundler/parcel) - for building
 * [Tailwind](https://tailwindcss.com/) - for CSS, uses [PostCSS](https://github.com/postcss/postcss)
+* [TypeScript](https://www.typescriptlang.org/) - for a stronger type system and stricter coding style
 
 ## Developing
 
-Clone the repository and run `npm install`.
+### Getting started
 
-You then have the following tasks available (`npm run <task>`):
+1. Make sure you have [Node.js](https://nodejs.org/en/) installed and `npm` available in your shell
+2. Clone the repository
+3. Run `npm install`
+4. (Optional) run `npm install --global web-ext`
+
+### Tasks
+
+The following tasks are available (`npm run <task>`):
 
 * `dev` - uses Parcel to create a live-reloading extension in `./dist`
 * `graphs` - uses Parcel to create a live-reloading graphs page, which can be viewed directly
