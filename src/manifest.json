@@ -14,7 +14,7 @@
     },
     "background": {
         "scripts": [
-            "background/proxy.js"
+            "background/proxy.ts"
         ]
     },
     "permissions": [

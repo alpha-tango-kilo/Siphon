@@ -33,7 +33,8 @@
                 <li>Google</li>
             </ol>
         </div>
-        <a id="trackers-graph-icon" target="_blank">
+        <!-- Link to graphs page is necessary for Parcel to pull it in but is overriden in popup.js -->
+        <a id="trackers-graph-icon" target="_blank" href="../graphs/graphs.html">
             <img src="../icons/graph.svg" class="graph-icon">
         </a>
     </div>
@@ -55,7 +56,7 @@
 
     <button id="dark-toggle" class="px-2 py-1 border-3">🌙</button>
     
-    <script src="popup.js"></script>
+    <script src="popup.ts"></script>
 </body>
 
 </html>
