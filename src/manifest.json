@@ -18,6 +18,7 @@
         ]
     },
     "permissions": [
+        "tabs",
         "proxy",
         "storage",
         "<all_urls>"
