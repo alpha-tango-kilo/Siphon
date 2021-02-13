@@ -8,7 +8,7 @@
     "graphs": "parcel src/graphs/graphs.html",
     "dev": "parcel src/manifest.json --host localhost --target dev",
     "build": "rm -rf build/** && parcel build src/manifest.json --target prod",
-    "ff-dev": "web-ext run -s ./dist --no-reload --pref devtools.toolbox.splitconsoleEnabled=true --start-url about:debugging#/runtime/this-firefox",
+    "ff-dev": "web-ext run -s ./dist --pref devtools.toolbox.splitconsoleEnabled=true --start-url about:debugging#/runtime/this-firefox",
     "ff-build": "web-ext run -s ./build --pref devtools.toolbox.splitconsoleEnabled=true --start-url about:debugging#/runtime/this-firefox",
     "clean": "rm -rf dist/** build/**"
   },
