@@ -1,13 +1,29 @@
+import { getHostname } from "../lib";
+
 const listLocation = "https://v.firebog.net/hosts/Easyprivacy.txt";
 let flaggedHosts: Set<string>;
 
+// TODO: Save/Load these
+let totalRequests = 0;
+let flaggedRequests = 0;
+
+// TODO: can we ensure this is only done once flaggedHosts is initialised?
 browser.proxy.onRequest.addListener(handleProxyRequest, { urls: ["<all_urls>"] });
 
-function handleProxyRequest(requestInfo) {
-    const url = new URL(requestInfo.url);
-    //console.log(url.toString());
+function handleProxyRequest(requestDetails: browser.proxy.RequestDetails) {
+    // If flaggedHosts is not yet initialised, don't do anything fancy
+    if (!flaggedHosts) return;
 
-    // TODO: further processing
+    const host: string = getHostname(requestDetails.url)!;
+    console.log(host);
+    if (flaggedHosts.has(host)) {
+        console.log("Request " + host + " is a flagged host");
+        flaggedRequests++;
+
+        // TODO: track data uploaded
+        // TODO: save information
+    }
+    totalRequests++;
 }
 
 function saveHosts() {
