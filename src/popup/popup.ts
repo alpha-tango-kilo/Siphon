@@ -1,3 +1,5 @@
+import { getHostname } from "../lib";
+
 (function() {
     let darkThemeButton = document.getElementById("dark-toggle")!;
     darkThemeButton.addEventListener("click", toggleDarkTheme);
@@ -47,24 +49,5 @@
             else
                 pCurrentPageStatistics.textContent = hostname;
         });
-    }
-
-    function getHostname(url: string): string | undefined {
-        let parts = url.split("/");
-
-        if (parts.length < 3) {
-            // We're on a special page, like a tab page, or a settings page
-            return undefined;
-        } else {
-            // [2] should be the bit after the protocol
-            // Now we just need to get rid of any subdomains, so we split by periods and take the last two
-            let domainParts = parts[2].split(".");
-
-            if (domainParts.length < 2) {
-                return undefined;
-            } else {
-                return domainParts.slice(-2).join(".");
-            }
-        }
     }
 }());
