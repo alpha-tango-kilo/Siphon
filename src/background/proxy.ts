@@ -1,5 +1,5 @@
 const listLocation = "https://v.firebog.net/hosts/Easyprivacy.txt";
-let flaggedHosts: string[];
+let flaggedHosts: Set<string>;
 
 browser.proxy.onRequest.addListener(handleProxyRequest, { urls: ["<all_urls>"] });
 
@@ -12,7 +12,7 @@ function handleProxyRequest(requestInfo) {
 
 function saveHosts() {
     browser.storage.local.set({
-        siphonFlaggedHosts: flaggedHosts
+        siphonFlaggedHosts: Array.from(flaggedHosts)
     }).then(() => {
         console.log("Saved hosts to storage");
     }).catch(err => {
@@ -51,7 +51,7 @@ function updateHosts() {
     }).then(blob => blob.text())
     .then(text => {
         let lines = text.split("\n");
-        flaggedHosts = lines;
+        flaggedHosts = new Set<string>(lines);
         console.log("Fetched hosts file from " + listLocation + "\nRead " + lines.length + " domains");
         saveHosts();
     }).catch(err => {
