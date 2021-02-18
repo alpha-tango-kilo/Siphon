@@ -1,3 +1,4 @@
+import { browser, Proxy } from "webextension-polyfill-ts";
 import { getHostname } from "../lib";
 
 const listLocation = "https://v.firebog.net/hosts/Easyprivacy.txt";
@@ -10,14 +11,15 @@ let flaggedRequests = 0;
 // TODO: can we ensure this is only done once flaggedHosts is initialised?
 browser.proxy.onRequest.addListener(handleProxyRequest, { urls: ["<all_urls>"] });
 
-function handleProxyRequest(requestDetails: browser.proxy.RequestDetails) {
+function handleProxyRequest(requestDetails: Proxy.OnRequestDetailsType) {
     // If flaggedHosts is not yet initialised, don't do anything fancy
     if (!flaggedHosts) return;
 
     const host: string = getHostname(requestDetails.url)!;
-    console.log(host);
+    //console.log(host);
+    loadHosts();
     if (flaggedHosts.has(host)) {
-        console.log("Request " + host + " is a flagged host");
+        //console.log("Request " + host + " is a flagged host");
         flaggedRequests++;
 
         // TODO: track data uploaded
@@ -41,14 +43,13 @@ function saveHosts() {
  */
 function loadHosts() {
     // Retrieve the stored list
-    browser.storage.local.get(data => {
-        if (data.siphonFlaggedHosts) {
+    browser.storage.local.get("siphonFlaggedHosts")
+        .then(data => {
             console.log("Found data already set");
             flaggedHosts = data.siphonFlaggedHosts;
-        } else {
+        }).catch(_ => {
             updateHosts();
-        }
-    });
+        });
 }
 
 /**
@@ -76,11 +77,11 @@ function updateHosts() {
 }
 
 // ON START UP
-browser.runtime.onStartup.addListener(_ => {
+browser.runtime.onStartup.addListener(() => {
     loadHosts();
 });
 
 // ON INSTALL
-browser.runtime.onInstalled.addListener(_ => {
+browser.runtime.onInstalled.addListener(() => {
     updateHosts();
 });
