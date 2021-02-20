@@ -19,7 +19,7 @@
     },
     "permissions": [
         "tabs",
-        "proxy",
+        "webRequest",
         "storage",
         "<all_urls>"
     ],
