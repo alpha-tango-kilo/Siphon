@@ -2,7 +2,8 @@ import { browser, Proxy } from "webextension-polyfill-ts";
 import { getHostname } from "../lib";
 
 const listLocation = "https://v.firebog.net/hosts/Easyprivacy.txt";
-let flaggedHosts: Set<string>;
+let flaggedHostsSet: Set<string>;
+let flaggedHostsArray: string[] = [];
 
 // TODO: Save/Load these
 let totalRequests = 0;
@@ -13,12 +14,12 @@ browser.proxy.onRequest.addListener(handleProxyRequest, { urls: ["<all_urls>"] }
 
 function handleProxyRequest(requestDetails: Proxy.OnRequestDetailsType) {
     // If flaggedHosts is not yet initialised, don't do anything fancy
-    if (!flaggedHosts) return;
+    if (!flaggedHostsSet) return;
 
     const host: string = getHostname(requestDetails.url)!;
     //console.log(host);
     loadHosts();
-    if (flaggedHosts.has(host)) {
+    if (flaggedHostsSet.has(host)) {
         //console.log("Request " + host + " is a flagged host");
         flaggedRequests++;
 
@@ -30,7 +31,7 @@ function handleProxyRequest(requestDetails: Proxy.OnRequestDetailsType) {
 
 function saveHosts() {
     browser.storage.local.set({
-        siphonFlaggedHosts: Array.from(flaggedHosts)
+        siphonFlaggedHosts: flaggedHostsArray
     }).then(() => {
         console.log("Saved hosts to storage");
     }).catch(err => {
@@ -46,7 +47,8 @@ function loadHosts() {
     browser.storage.local.get("siphonFlaggedHosts")
         .then(data => {
             console.log("Found data already set");
-            flaggedHosts = new Set(data.siphonFlaggedHosts);
+            flaggedHostsArray = data.siphonFlaggedHosts;
+            flaggedHostsSet = new Set(flaggedHostsArray);
         }).catch(_ => {
             updateHosts();
         });
@@ -67,9 +69,9 @@ function updateHosts() {
         }
     }).then(blob => blob.text())
     .then(text => {
-        let lines = text.split("\n");
-        flaggedHosts = new Set<string>(lines);
-        console.log("Fetched hosts file from " + listLocation + "\nRead " + lines.length + " domains");
+        flaggedHostsArray = text.split("\n");
+        flaggedHostsSet = new Set<string>(flaggedHostsArray);
+        console.log("Fetched hosts file from " + listLocation + "\nRead " + flaggedHostsArray.length + " domains");
         saveHosts();
     }).catch(err => {
         console.error("Failed to get hosts (" + err + ")");
