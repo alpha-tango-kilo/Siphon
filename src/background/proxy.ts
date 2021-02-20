@@ -46,7 +46,7 @@ function loadHosts() {
     browser.storage.local.get("siphonFlaggedHosts")
         .then(data => {
             console.log("Found data already set");
-            flaggedHosts = data.siphonFlaggedHosts;
+            flaggedHosts = new Set(data.siphonFlaggedHosts);
         }).catch(_ => {
             updateHosts();
         });
