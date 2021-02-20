@@ -27,6 +27,9 @@ let initFlaggedHosts = setInterval(() => {
 function recordRequest(requestDetails: WebRequest.OnCompletedDetailsType) {
     const host = getHostname(requestDetails.url)!;
     console.log("Request " + host + " is a flagged host");
+
+    const totalTraffic = requestDetails.requestSize + requestDetails.responseSize;
+    console.log(totalTraffic + " bytes");
 }
 
 function saveHosts() {
