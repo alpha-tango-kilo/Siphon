@@ -1,4 +1,4 @@
-import { browser, Proxy } from "webextension-polyfill-ts";
+import { browser, Proxy, WebRequest } from "webextension-polyfill-ts";
 import { getHostname } from "../lib";
 
 const listLocation = "https://v.firebog.net/hosts/Easyprivacy.txt";
@@ -9,24 +9,24 @@ let flaggedHostsArray: string[] = [];
 let totalRequests = 0;
 let flaggedRequests = 0;
 
-// TODO: can we ensure this is only done once flaggedHosts is initialised?
-browser.proxy.onRequest.addListener(handleProxyRequest, { urls: ["<all_urls>"] });
-
-function handleProxyRequest(requestDetails: Proxy.OnRequestDetailsType) {
-    // If flaggedHosts is not yet initialised, don't do anything fancy
-    if (!flaggedHostsSet) return;
-
-    const host: string = getHostname(requestDetails.url)!;
-    //console.log(host);
-    loadHosts();
-    if (flaggedHostsSet.has(host)) {
-        //console.log("Request " + host + " is a flagged host");
-        flaggedRequests++;
-
-        // TODO: track data uploaded
-        // TODO: save information
+// Initialisation to be run after hosts are loaded
+// Tried every 3 seconds, will only run successfully once
+let initFlaggedHosts = setInterval(() => {
+    //console.log("Attempting to add listener");
+    if (flaggedHostsArray.length > 0) {
+        // Change hosts to MDN specified match pattern format
+        // https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/Match_patterns
+        const matchPatterns = flaggedHostsArray.map(host => "*://" + host + "/*");
+        browser.webRequest.onCompleted.addListener(recordRequest, { urls: matchPatterns });
+        clearTimeout(initFlaggedHosts);
+        console.log("Siphon is monitoring requests");
     }
-    totalRequests++;
+}, 3000);
+
+// This function is only called on flagged hosts
+function recordRequest(requestDetails: WebRequest.OnCompletedDetailsType) {
+    const host = getHostname(requestDetails.url)!;
+    console.log("Request " + host + " is a flagged host");
 }
 
 function saveHosts() {
