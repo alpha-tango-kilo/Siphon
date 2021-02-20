@@ -1,22 +1,19 @@
-import { browser, Proxy, WebRequest } from "webextension-polyfill-ts";
+import { browser, WebRequest } from "webextension-polyfill-ts";
 import { getHostname } from "../lib";
 
 const listLocation = "https://v.firebog.net/hosts/Easyprivacy.txt";
-let flaggedHostsSet: Set<string>;
-let flaggedHostsArray: string[] = [];
+let flaggedHosts: string[] = [];
 
-// TODO: Save/Load these
-let totalRequests = 0;
-let flaggedRequests = 0;
-
-// Initialisation to be run after hosts are loaded
-// Tried every 3 seconds, will only run successfully once
+/**
+ * Initialisation to be run after hosts are loaded
+ * Tried every 3 seconds, will only run successfully once
+ */ 
 let initFlaggedHosts = setInterval(() => {
     //console.log("Attempting to add listener");
-    if (flaggedHostsArray.length > 0) {
+    if (flaggedHosts.length > 0) {
         // Change hosts to MDN specified match pattern format
         // https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/Match_patterns
-        const matchPatterns = flaggedHostsArray.map(host => "*://" + host + "/*");
+        const matchPatterns = flaggedHosts.map(host => "*://" + host + "/*");
         browser.webRequest.onCompleted.addListener(recordRequest, { urls: matchPatterns });
         clearTimeout(initFlaggedHosts);
         console.log("Siphon is monitoring requests");
@@ -34,7 +31,7 @@ function recordRequest(requestDetails: WebRequest.OnCompletedDetailsType) {
 
 function saveHosts() {
     browser.storage.local.set({
-        siphonFlaggedHosts: flaggedHostsArray
+        siphonFlaggedHosts: flaggedHosts
     }).then(() => {
         console.log("Saved hosts to storage");
     }).catch(err => {
@@ -50,8 +47,7 @@ function loadHosts() {
     browser.storage.local.get("siphonFlaggedHosts")
         .then(data => {
             console.log("Found data already set");
-            flaggedHostsArray = data.siphonFlaggedHosts;
-            flaggedHostsSet = new Set(flaggedHostsArray);
+            flaggedHosts = data.siphonFlaggedHosts;
         }).catch(_ => {
             updateHosts();
         });
@@ -72,9 +68,8 @@ function updateHosts() {
         }
     }).then(blob => blob.text())
     .then(text => {
-        flaggedHostsArray = text.split("\n");
-        flaggedHostsSet = new Set<string>(flaggedHostsArray);
-        console.log("Fetched hosts file from " + listLocation + "\nRead " + flaggedHostsArray.length + " domains");
+        flaggedHosts = text.split("\n");
+        console.log("Fetched hosts file from " + listLocation + "\nRead " + flaggedHosts.length + " domains");
         saveHosts();
     }).catch(err => {
         console.error("Failed to get hosts (" + err + ")");
