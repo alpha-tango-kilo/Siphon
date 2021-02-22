@@ -21,12 +21,29 @@ let initFlaggedHosts = setInterval(() => {
 }, 3000);
 
 // This function is only called on flagged hosts
+// https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/webRequest/onCompleted#details
 function recordRequest(requestDetails: WebRequest.OnCompletedDetailsType) {
-    const host = getHostname(requestDetails.url)!;
-    console.log("Request " + host + " is a flagged host");
+    if (requestDetails.fromCache) return;
+
+    const flaggedHost = getHostname(requestDetails.url)!;
+
+    // Get the current webpage we're on. If one isn't identified by the request, assume the request came from the domain
+    let currentHost: string;
+    if (requestDetails.documentUrl !== undefined) {
+        let temp = getHostname(requestDetails.documentUrl);
+        if (temp !== undefined) {
+            currentHost = temp;
+        } else {
+            currentHost = requestDetails.documentUrl;
+        }
+    } else {
+        currentHost = flaggedHost;
+    }
 
     const totalTraffic = requestDetails.requestSize + requestDetails.responseSize;
-    console.log(totalTraffic + " bytes");
+
+    console.log(new Date().toLocaleTimeString() + ": " + currentHost + " sent " + requestDetails.method + " request to "
+        + flaggedHost + ", total data sent/received " + totalTraffic + " bytes");
 }
 
 function saveHosts() {
