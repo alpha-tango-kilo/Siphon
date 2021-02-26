@@ -1,12 +1,14 @@
+import psl from "psl";
+
 const VERBOSE = true;
 
 // https://www.sistrix.com/ask-sistrix/technical-seo/site-structure/what-is-the-difference-between-a-url-domain-subdomain-hostname-etc
-export function getHostname(url: string): string | undefined {
+export function getHostname(url: string): string | null {
     let parts = url.split("/");
 
     if (parts.length < 3) {
         // We're on a special page, like a tab page, or a settings page
-        return undefined;
+        return null;
     } else {
         // [2] should be the bit after the protocol
         // Now we just check if we have a proper website (i.e. domain.tld)
@@ -14,16 +16,20 @@ export function getHostname(url: string): string | undefined {
         let hostname = parts[2];
 
         if (hostname.split(".").length < 2) {
-            return undefined;
+            return null;
         } else {
             return hostname;
         }
     }
 }
 
-export function getDomain(url: string): string | undefined {
-    // Get the last two parts of the hostname
-    return getHostname(url)?.split(".").slice(-2).join(".");
+export function getDomain(url: string): string | null {
+    let host = getHostname(url);
+    if (host === null) {
+        return null;
+    } else {
+        return psl.get(host);
+    }
 }
 
 export function verb_log(msg: string) {
