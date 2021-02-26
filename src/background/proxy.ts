@@ -1,5 +1,5 @@
 import { browser, WebRequest } from "webextension-polyfill-ts";
-import { getDomain, getHostname, TrackerRequest, verb_log } from "../lib";
+import { getDomain, getHostname, TrackerRequest, verb_err, verb_log } from "../lib";
 import { v4 as uuid } from "uuid";
 
 const listLocation = "https://v.firebog.net/hosts/Easyprivacy.txt";
@@ -30,27 +30,20 @@ function recordRequest(requestDetails: WebRequest.OnCompletedDetailsType) {
 
     const flaggedHost = getHostname(requestDetails.url)!;
 
-    // Get the current webpage we're on. If one isn't identified by the request, assume the request came from the domain
-    let currentHost: string;
-    if (requestDetails.documentUrl !== undefined) {
-        let temp = getHostname(requestDetails.documentUrl);
-        if (temp !== null) {
-            currentHost = temp;
-        } else {
-            currentHost = requestDetails.documentUrl;
-        }
-    } else {
-        currentHost = flaggedHost;
+    const activeTab = currentTabs.get(requestDetails.tabId);
+    // TODO: Not sure if this will ever happen or not
+    if (activeTab === undefined) {
+        verb_err("Couldn't find ActiveTab for tab ID " + requestDetails.tabId + " which made a request to " + flaggedHost);
+        return;
     }
 
     const totalTraffic = requestDetails.requestSize + requestDetails.responseSize;
 
-    verb_log(new Date().toLocaleTimeString() + ": " + currentHost + " sent " + requestDetails.method + " request to "
+    verb_log(new Date().toLocaleTimeString() + ": " + activeTab.domain + " sent " + requestDetails.method + " request to "
         + flaggedHost + ", total data sent/received " + totalTraffic + " bytes");
 
-    // TODO: change to tab session UID
     // TODO: store this
-    const trackerRequest = new TrackerRequest(uuid(), totalTraffic);
+    const trackerRequest = new TrackerRequest(activeTab.uuid, totalTraffic);
 }
 
 // TAB WATCHING
