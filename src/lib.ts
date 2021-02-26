@@ -17,3 +17,24 @@ export function getHostname(url: string): string | undefined {
         }
     }
 }
+
+export class TrackerRequest {
+    readonly sessionID: string; // UUID of tab session
+    readonly bytesExchanged: number;
+
+    constructor(sessionID: string, bytesExchanged: number) {
+        this.sessionID = sessionID;
+        this.bytesExchanged = bytesExchanged;
+    }
+}
+
+export class HostSession extends TrackerRequest {
+    readonly startTime: Date;
+    readonly endTime: Date;
+
+    constructor(sessionID: string, bytesExchanged: number, startTime: Date, endTime: Date) {
+        super(sessionID, bytesExchanged);
+        this.startTime = startTime;
+        this.endTime = endTime;
+    }
+}
