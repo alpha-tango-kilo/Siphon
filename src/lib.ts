@@ -1,3 +1,5 @@
+const VERBOSE = true;
+
 export function getHostname(url: string): string | undefined {
     let parts = url.split("/");
 
@@ -16,6 +18,14 @@ export function getHostname(url: string): string | undefined {
             return domain;
         }
     }
+}
+
+export function verb_log(msg: string) {
+    if (VERBOSE) console.log(msg);
+}
+
+export function verb_err(msg: string) {
+    if (VERBOSE) console.error(msg);
 }
 
 export class TrackerRequest {
