@@ -34,7 +34,7 @@ function recordRequest(requestDetails: WebRequest.OnCompletedDetailsType) {
     let currentHost: string;
     if (requestDetails.documentUrl !== undefined) {
         let temp = getHostname(requestDetails.documentUrl);
-        if (temp !== undefined) {
+        if (temp !== null) {
             currentHost = temp;
         } else {
             currentHost = requestDetails.documentUrl;
@@ -78,7 +78,7 @@ browser.tabs.onUpdated.addListener((tabID, changeInfo) => {
 
     // Update ActiveTab if domain has changed
     // Remove it if the new domain is undefined
-    if (newDomain !== undefined) {
+    if (newDomain !== null) {
         if (oldDomain !== newDomain) {
             currentTabs.set(tabID, new ActiveTab(newDomain));
             verb_log("Updated domain for tab " + tabID + " to " + newDomain + " (was " + oldDomain + ")");
