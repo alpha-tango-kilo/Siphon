@@ -1,8 +1,11 @@
 import { browser, WebRequest } from "webextension-polyfill-ts";
-import { getHostname } from "../lib";
+import { getDomain, getHostname, TrackerRequest, verb_log } from "../lib";
+import { v4 as uuid } from "uuid";
 
 const listLocation = "https://v.firebog.net/hosts/Easyprivacy.txt";
 let flaggedHosts: string[] = [];
+
+// REQUEST WATCHING
 
 /**
  * Initialisation to be run after hosts are loaded
@@ -42,9 +45,57 @@ function recordRequest(requestDetails: WebRequest.OnCompletedDetailsType) {
 
     const totalTraffic = requestDetails.requestSize + requestDetails.responseSize;
 
-    console.log(new Date().toLocaleTimeString() + ": " + currentHost + " sent " + requestDetails.method + " request to "
+    verb_log(new Date().toLocaleTimeString() + ": " + currentHost + " sent " + requestDetails.method + " request to "
         + flaggedHost + ", total data sent/received " + totalTraffic + " bytes");
+
+    // TODO: change to tab session UID
+    // TODO: store this
+    const trackerRequest = new TrackerRequest(uuid(), totalTraffic);
 }
+
+// TAB WATCHING
+
+class ActiveTab {
+    readonly domain: string;
+    readonly uuid: string;
+
+    constructor(domain: string) {
+        this.domain = domain;
+        this.uuid = uuid();
+    }
+}
+
+let currentTabs: Map<number, ActiveTab> = new Map();
+
+// Monitor tabs that change domains
+browser.tabs.onUpdated.addListener((tabID, changeInfo) => {
+    // Quick return if the url hasn't changed or the tab isn't a webpage
+    // https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/tabs/TAB_ID_NONE
+    if (!changeInfo.url || tabID === browser.tabs.TAB_ID_NONE) return;
+
+    const newDomain = getDomain(changeInfo.url);
+    const oldDomain = currentTabs.get(tabID)?.domain;
+
+    // Update ActiveTab if domain has changed
+    // Remove it if the new domain is undefined
+    if (newDomain !== undefined) {
+        if (oldDomain !== newDomain) {
+            currentTabs.set(tabID, new ActiveTab(newDomain));
+            verb_log("Updated domain for tab " + tabID + " to " + newDomain + " (was " + oldDomain + ")");
+        } else {
+            verb_log("Tab " + tabID + " (" + newDomain + ") changed URL but stayed on the same domain");
+        }
+    } else {
+        // Doesn't error on failure so always call
+        currentTabs.delete(tabID);
+        verb_log("Tab " + tabID + " (" + oldDomain + ") changed to a non-web URI");
+    }
+});
+
+// Clean up currentTabs when a tab is closed
+browser.tabs.onRemoved.addListener((tabID, _) => currentTabs.delete(tabID));
+
+// STORING AND LOADING DOMAINS
 
 function saveHosts() {
     browser.storage.local.set({
