@@ -1,5 +1,6 @@
 const VERBOSE = true;
 
+// https://www.sistrix.com/ask-sistrix/technical-seo/site-structure/what-is-the-difference-between-a-url-domain-subdomain-hostname-etc
 export function getHostname(url: string): string | undefined {
     let parts = url.split("/");
 
@@ -10,14 +11,19 @@ export function getHostname(url: string): string | undefined {
         // [2] should be the bit after the protocol
         // Now we just check if we have a proper website (i.e. domain.tld)
 
-        let domain = parts[2];
+        let hostname = parts[2];
 
-        if (domain.split(".").length < 2) {
+        if (hostname.split(".").length < 2) {
             return undefined;
         } else {
-            return domain;
+            return hostname;
         }
     }
+}
+
+export function getDomain(url: string): string | undefined {
+    // Get the last two parts of the hostname
+    return getHostname(url)?.split(".").slice(-2).join(".");
 }
 
 export function verb_log(msg: string) {
