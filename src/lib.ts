@@ -1,5 +1,9 @@
 import psl from "psl";
 
+export const FLAGGED_HOSTS = "siphonFlaggedHosts";
+export const DOMAIN_SESSIONS = "siphonDomainSessions";
+export const TRACKER_REQUESTS = "siphonTrackerRequests";
+
 const VERBOSE = true;
 
 // https://www.sistrix.com/ask-sistrix/technical-seo/site-structure/what-is-the-difference-between-a-url-domain-subdomain-hostname-etc

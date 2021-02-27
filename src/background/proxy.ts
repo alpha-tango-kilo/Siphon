@@ -1,5 +1,5 @@
 import { browser, WebRequest } from "webextension-polyfill-ts";
-import { getDomain, getHostname, TrackerRequest, DomainSession, verb_err, verb_log } from "../lib";
+import { getDomain, getHostname, TrackerRequest, DomainSession, verb_err, verb_log, TRACKER_REQUESTS, DOMAIN_SESSIONS, FLAGGED_HOSTS } from "../lib";
 import { v4 as uuid } from "uuid";
 
 const listLocation = "https://v.firebog.net/hosts/Easyprivacy.txt";
@@ -101,9 +101,9 @@ browser.tabs.onRemoved.addListener((tabID, _) => saveRemoveDomainSession(tabID))
 function saveRemoveDomainSession(tabID: number) {
     let endedSession = currentTabs.get(tabID);
     if (endedSession) {
-        browser.storage.local.get("siphonDomainSessions")
+        browser.storage.local.get(DOMAIN_SESSIONS)
             .then(data => {
-                let domainSessions: Map<string, DomainSession[]> = data.siphonDomainSessions;
+                let domainSessions: Map<string, DomainSession[]> = data[DOMAIN_SESSIONS];
                 // Initialise map if it doesn't already exist
                 if (!domainSessions) {
                     verb_log("Created domain session map")
@@ -120,7 +120,10 @@ function saveRemoveDomainSession(tabID: number) {
                     verb_log("First session on " + endedSession!.domain);
                     domainSessions.set(endedSession!.domain, [endedSession!.archive()]);
                 }
-                return browser.storage.local.set({ siphonDomainSessions: domainSessions });
+
+                let temp: any = new Object;
+                temp[DOMAIN_SESSIONS] = domainSessions;
+                return browser.storage.local.set(temp);
             }).then(() => {
                 verb_log("Session " + endedSession!.uuid + " on " + endedSession!.domain + " saved");
             }).catch(err => {
@@ -134,10 +137,10 @@ function saveRemoveDomainSession(tabID: number) {
 // STORING AND LOADING DOMAINS
 
 function saveHosts() {
-    browser.storage.local.set({
-        siphonFlaggedHosts: flaggedHosts
-    }).then(() => {
-        console.log("Saved hosts to storage");
+    let temp: any = new Object;
+    temp[FLAGGED_HOSTS] = flaggedHosts;
+    browser.storage.local.set(temp).then(() => {
+        verb_log("Saved hosts to storage");
     }).catch(err => {
         console.error("Failed to save hosts (" + err + ")");
     });
@@ -148,10 +151,10 @@ function saveHosts() {
  */
 function loadHosts() {
     // Retrieve the stored list
-    browser.storage.local.get("siphonFlaggedHosts")
+    browser.storage.local.get(FLAGGED_HOSTS)
         .then(data => {
-            console.log("Found data already set");
-            flaggedHosts = data.siphonFlaggedHosts;
+            verb_log("Found data already set");
+            flaggedHosts = data[FLAGGED_HOSTS];
         }).catch(_ => {
             updateHosts();
         });
