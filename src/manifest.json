@@ -21,6 +21,7 @@
         "tabs",
         "webRequest",
         "storage",
+        "unlimitedStorage",
         "<all_urls>"
     ],
     "browser_action": {
