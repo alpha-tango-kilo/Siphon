@@ -1,5 +1,5 @@
 import { browser, WebRequest } from "webextension-polyfill-ts";
-import { getDomain, getHostname, TrackerRequest, verb_err, verb_log } from "../lib";
+import { getDomain, getHostname, TrackerRequest, DomainSession, verb_err, verb_log } from "../lib";
 import { v4 as uuid } from "uuid";
 
 const listLocation = "https://v.firebog.net/hosts/Easyprivacy.txt";
@@ -48,17 +48,23 @@ function recordRequest(requestDetails: WebRequest.OnCompletedDetailsType) {
 
 // TAB WATCHING
 
-class ActiveTab {
+class ActiveDomainSession {
     readonly domain: string;
     readonly uuid: string;
+    readonly startDate: number;
 
     constructor(domain: string) {
         this.domain = domain;
         this.uuid = uuid();
+        this.startDate = Date.now();
+    }
+
+    archive(): DomainSession {
+        return new DomainSession(this.uuid, this.startDate, Date.now());
     }
 }
 
-let currentTabs: Map<number, ActiveTab> = new Map();
+let currentTabs: Map<number, ActiveDomainSession> = new Map();
 
 // Monitor tabs that change domains
 browser.tabs.onUpdated.addListener((tabID, changeInfo) => {
@@ -71,22 +77,59 @@ browser.tabs.onUpdated.addListener((tabID, changeInfo) => {
 
     // Update ActiveTab if domain has changed
     // Remove it if the new domain is undefined
-    if (newDomain !== null) {
+    if (newDomain) {
         if (oldDomain !== newDomain) {
-            currentTabs.set(tabID, new ActiveTab(newDomain));
+            currentTabs.set(tabID, new ActiveDomainSession(newDomain));
             verb_log("Updated domain for tab " + tabID + " to " + newDomain + " (was " + oldDomain + ")");
         } else {
             verb_log("Tab " + tabID + " (" + newDomain + ") changed URL but stayed on the same domain");
         }
     } else {
         // Doesn't error on failure so always call
-        currentTabs.delete(tabID);
+        saveRemoveDomainSession(tabID);
         verb_log("Tab " + tabID + " (" + oldDomain + ") changed to a non-web URI");
     }
 });
 
 // Clean up currentTabs when a tab is closed
-browser.tabs.onRemoved.addListener((tabID, _) => currentTabs.delete(tabID));
+browser.tabs.onRemoved.addListener((tabID, _) => saveRemoveDomainSession(tabID));
+
+/**
+ * Saves a current ActiveDomainSession from currentTabs to browser storage as a DomainSession, and then
+ * removes this from currentTabs
+ */
+function saveRemoveDomainSession(tabID: number) {
+    let endedSession = currentTabs.get(tabID);
+    if (endedSession) {
+        browser.storage.local.get("siphonDomainSessions")
+            .then(data => {
+                let domainSessions: Map<string, DomainSession[]> = data.siphonDomainSessions;
+                // Initialise map if it doesn't already exist
+                if (!domainSessions) {
+                    verb_log("Created domain session map")
+                    domainSessions = new Map<string, DomainSession[]>();
+                }
+
+                // TODO: why does this have to be asserted as defined when we've already checked for it
+                let sessionList = domainSessions.get(endedSession!.domain);
+                if (sessionList) {
+                    // If there are already sessions to this domain
+                    sessionList.push(endedSession!.archive());
+                } else {
+                    // First session on this domain, create the map entry
+                    verb_log("First session on " + endedSession!.domain);
+                    domainSessions.set(endedSession!.domain, [endedSession!.archive()]);
+                }
+                return browser.storage.local.set({ siphonDomainSessions: domainSessions });
+            }).then(() => {
+                verb_log("Session " + endedSession!.uuid + " on " + endedSession!.domain + " saved");
+            }).catch(err => {
+                console.error("Error saving session " + endedSession!.uuid + " on " + endedSession!.domain + " (" +
+                    err + ")");
+            });
+    }
+    currentTabs.delete(tabID);
+}
 
 // STORING AND LOADING DOMAINS
 
