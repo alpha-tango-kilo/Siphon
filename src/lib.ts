@@ -41,22 +41,27 @@ export function verb_err(msg: string) {
 }
 
 export class TrackerRequest {
-    readonly sessionID: string; // UUID of tab session
+    readonly sessionUUID: string; // UUID of tab session
     readonly bytesExchanged: number;
 
-    constructor(sessionID: string, bytesExchanged: number) {
-        this.sessionID = sessionID;
+    constructor(sessionUUID: string, bytesExchanged: number) {
+        this.sessionUUID = sessionUUID;
         this.bytesExchanged = bytesExchanged;
     }
 }
 
-export class HostSession extends TrackerRequest {
-    readonly startTime: Date;
-    readonly endTime: Date;
+export class DomainSession {
+    readonly sessionUUID: string; // UUID of tab session
+    readonly bytesExchanged: number;
+    readonly startTime: number;
+    readonly endTime: number;
 
-    constructor(sessionID: string, bytesExchanged: number, startTime: Date, endTime: Date) {
-        super(sessionID, bytesExchanged);
+    constructor(sessionID: string, startTime: number, endTime: number) {
+        this.sessionUUID = sessionID;
         this.startTime = startTime;
         this.endTime = endTime;
+        // TODO: fetch all tracker requests during session and total
+        // Maybe do this lazily?
+        this.bytesExchanged = 0;
     }
 }
