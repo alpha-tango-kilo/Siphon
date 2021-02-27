@@ -1,5 +1,5 @@
 import { browser, WebRequest } from "webextension-polyfill-ts";
-import { getDomain, getHostname, TrackerRequest, DomainSession, verb_err, verb_log, TRACKER_REQUESTS, DOMAIN_SESSIONS, FLAGGED_HOSTS } from "../lib";
+import { getDomain, getHostname, TrackerRequest, DomainSession, verb_log, TRACKER_REQUESTS, DOMAIN_SESSIONS, FLAGGED_HOSTS } from "../lib";
 import { v4 as uuid } from "uuid";
 
 const listLocation = "https://v.firebog.net/hosts/Easyprivacy.txt";
@@ -19,7 +19,7 @@ let initFlaggedHosts = setInterval(() => {
         const matchPatterns = flaggedHosts.map(host => "*://" + host + "/*");
         browser.webRequest.onCompleted.addListener(recordRequest, { urls: matchPatterns });
         clearTimeout(initFlaggedHosts);
-        console.log("Siphon is monitoring requests");
+        verb_log("Siphon is monitoring requests");
     }
 }, 3000);
 
@@ -30,20 +30,47 @@ function recordRequest(requestDetails: WebRequest.OnCompletedDetailsType) {
 
     const flaggedHost = getHostname(requestDetails.url)!;
 
-    const activeTab = currentTabs.get(requestDetails.tabId);
+    const activeDomainSession = currentTabs.get(requestDetails.tabId);
     // TODO: Not sure if this will ever happen or not
-    if (activeTab === undefined) {
-        verb_err("Couldn't find ActiveTab for tab ID " + requestDetails.tabId + " which made a request to " + flaggedHost);
+    if (activeDomainSession === undefined) {
+        console.error("Couldn't find ActiveDomainSession for tab ID " + requestDetails.tabId +
+            " which made a request to " + flaggedHost);
         return;
     }
 
     const totalTraffic = requestDetails.requestSize + requestDetails.responseSize;
 
-    verb_log(new Date().toLocaleTimeString() + ": " + activeTab.domain + " sent " + requestDetails.method + " request to "
-        + flaggedHost + ", total data sent/received " + totalTraffic + " bytes");
+    verb_log(new Date().toLocaleTimeString() + ": " + activeDomainSession.domain + " sent " + requestDetails.method +
+    " request to " + flaggedHost + ", total data sent/received " + totalTraffic + " bytes");
 
-    // TODO: store this
-    const trackerRequest = new TrackerRequest(activeTab.uuid, totalTraffic);
+    browser.storage.local.get(TRACKER_REQUESTS)
+        .then(data => {
+            let trackerRequests: Map<string, TrackerRequest[]> = data[TRACKER_REQUESTS];
+            // Initialise map if it doesn't already exist
+            if (!trackerRequests) {
+                verb_log("Created tracker request map")
+                trackerRequests = new Map<string, TrackerRequest[]>();
+            }
+
+            let trackerList = trackerRequests.get(flaggedHost);
+            const trackerRequest = new TrackerRequest(activeDomainSession.uuid, totalTraffic);
+            if (trackerList) {
+                // If there are already logged requests to this domain
+                trackerList.push(trackerRequest);
+            } else {
+                // First request to this domain, create the map entry
+                verb_log("First tracking request to " + flaggedHost);
+                trackerRequests.set(flaggedHost, [trackerRequest]);
+            }
+
+            let temp: any = new Object;
+            temp[TRACKER_REQUESTS] = trackerRequests;
+            return browser.storage.local.set(temp);
+        }).then(() => {
+            verb_log("Tracker request to " + flaggedHost + " during session " + activeDomainSession.uuid + " saved");
+        }).catch(err => {
+            console.error("Error saving tracker request to " + flaggedHost + " (" + err + ")");
+        });
 }
 
 // TAB WATCHING
@@ -176,7 +203,7 @@ function updateHosts() {
     }).then(blob => blob.text())
     .then(text => {
         flaggedHosts = text.split("\n");
-        console.log("Fetched hosts file from " + listLocation + "\nRead " + flaggedHosts.length + " domains");
+        verb_log("Fetched hosts file from " + listLocation + "\nRead " + flaggedHosts.length + " domains");
         saveHosts();
     }).catch(err => {
         console.error("Failed to get hosts (" + err + ")");
