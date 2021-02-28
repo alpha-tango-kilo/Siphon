@@ -8,7 +8,7 @@ import { getHostname } from "../lib";
     let trackersGraphIcon = document.getElementById("trackers-graph-icon")!;
     trackersGraphIcon.setAttribute("href", "../graphs/graphs.html?trackers");
 
-    let websiteRankIcon = document.getElementById("webite-rank-icon")!;
+    let websiteRankIcon = document.getElementById("website-rank-icon")!;
     websiteRankIcon.setAttribute("href", "../graphs/graphs.html?rank");
 
     browser.tabs.onActivated.addListener(onChangeTab);
