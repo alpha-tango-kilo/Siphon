@@ -41,7 +41,7 @@ export function verb_err(msg: string) {
 
 class SiphonDatabase extends Dexie {
     trackerRequests: Dexie.Table<ITrackerRequest>;
-    domainSessions:  Dexie.Table<IDomainSession,  string>;
+    domainSessions:  Dexie.Table<IDomainSession, string>;
 
     constructor() {
         super("SiphonDatabase");
@@ -52,6 +52,38 @@ class SiphonDatabase extends Dexie {
 
         this.trackerRequests = this.table("trackerRequests");
         this.domainSessions = this.table("domainSessions");
+    }
+
+    async totalBytesSentToTracker(hostname: string): Promise<number> {
+        return this.trackerBytesTotal("hostname", hostname);
+    }
+
+    /**
+     * Gets a list of all the domain sessions between two dates, optionally filtered by domain
+     */
+    private async allSessionsBetween(startTime: number, endTime: number, domain?: string): Promise<IDomainSession[]> {
+        return this.domainSessions
+            .where("startTime")
+            .between(startTime, endTime)
+            .filter(domainSession => domain ? domainSession.domain === domain : true)
+            .filter(domainSession => domainSession.endTime <= endTime && domainSession.endTime > startTime)
+            .toArray();
+    }
+
+    private async totalBytesSentDuringSession(sessionUUID: string): Promise<number> {
+        return this.trackerBytesTotal("sessionUUID", sessionUUID);
+    }
+
+    /**
+     * Provides reasonably general totalling of bytesExchanged
+     * You can filter one field to one exact value (case sensitive)
+     */
+    private async trackerBytesTotal(searchField: string, searchTerm: string | number): Promise<number> {
+        return this.trackerRequests
+            .where(searchField)
+            .equals(searchTerm)
+            .toArray()
+            .then(list => list.reduce((acc, trackerRequest) => acc + trackerRequest.bytesExchanged, 0));
     }
 }
 
