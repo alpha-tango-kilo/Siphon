@@ -1,5 +1,5 @@
 import { browser, WebRequest } from "webextension-polyfill-ts";
-import { getDomain, getHostname, TrackerRequest, DomainSession, verb_log, TRACKER_REQUESTS, DOMAIN_SESSIONS, FLAGGED_HOSTS } from "../lib";
+import { getDomain, getHostname, verb_log, FLAGGED_HOSTS, DATABASE, IActiveDomainSession } from "../lib";
 import { v4 as uuid } from "uuid";
 
 const listLocation = "https://v.firebog.net/hosts/Easyprivacy.txt";
@@ -25,76 +25,36 @@ let initFlaggedHosts = setInterval(() => {
 
 // This function is only called on flagged hosts
 // https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/webRequest/onCompleted#details
-function recordRequest(requestDetails: WebRequest.OnCompletedDetailsType) {
+async function recordRequest(requestDetails: WebRequest.OnCompletedDetailsType) {
     if (requestDetails.fromCache) return;
 
-    const flaggedHost = getHostname(requestDetails.url)!;
+    const hostname = getHostname(requestDetails.url)!;
 
     const activeDomainSession = currentTabs.get(requestDetails.tabId);
     // TODO: Not sure if this will ever happen or not
     if (activeDomainSession === undefined) {
-        console.error("Couldn't find ActiveDomainSession for tab ID " + requestDetails.tabId +
-            " which made a request to " + flaggedHost);
-        return;
+        return Promise.reject("Couldn't find active domain session for tab ID " + requestDetails.tabId +
+            " which made a request to " + hostname);
     }
 
-    const totalTraffic = requestDetails.requestSize + requestDetails.responseSize;
+    const bytesExchanged = requestDetails.requestSize + requestDetails.responseSize;
 
-    verb_log(new Date().toLocaleTimeString() + ": " + activeDomainSession.domain + " sent " + requestDetails.method +
-    " request to " + flaggedHost + ", total data sent/received " + totalTraffic + " bytes");
-
-    browser.storage.local.get(TRACKER_REQUESTS)
-        .then(data => {
-            let trackerRequests: Map<string, TrackerRequest[]> = data[TRACKER_REQUESTS];
-            // Initialise map if it doesn't already exist
-            if (!trackerRequests) {
-                verb_log("Created tracker request map")
-                trackerRequests = new Map<string, TrackerRequest[]>();
-            }
-
-            let trackerList = trackerRequests.get(flaggedHost);
-            const trackerRequest = new TrackerRequest(activeDomainSession.uuid, totalTraffic);
-            if (trackerList) {
-                // If there are already logged requests to this domain
-                trackerList.push(trackerRequest);
-            } else {
-                // First request to this domain, create the map entry
-                verb_log("First tracking request to " + flaggedHost);
-                trackerRequests.set(flaggedHost, [trackerRequest]);
-            }
-
-            let temp: any = new Object;
-            temp[TRACKER_REQUESTS] = trackerRequests;
-            return browser.storage.local.set(temp);
-        }).then(() => {
-            verb_log("Tracker request to " + flaggedHost + " during session " + activeDomainSession.uuid + " saved");
-        }).catch(err => {
-            console.error("Error saving tracker request to " + flaggedHost + " (" + err + ")");
-        });
+    return DATABASE.trackerRequests.put({
+        sessionUUID: activeDomainSession.sessionUUID,
+        hostname,
+        bytesExchanged
+    }).then(_ => {
+        verb_log(new Date().toLocaleTimeString() + ": " + activeDomainSession.domain + " sent " + requestDetails.method +
+        " request to " + hostname + ", total data sent/received " + bytesExchanged + " bytes");
+    });
 }
 
 // TAB WATCHING
 
-class ActiveDomainSession {
-    readonly domain: string;
-    readonly uuid: string;
-    readonly startDate: number;
-
-    constructor(domain: string) {
-        this.domain = domain;
-        this.uuid = uuid();
-        this.startDate = Date.now();
-    }
-
-    archive(): DomainSession {
-        return new DomainSession(this.uuid, this.startDate, Date.now());
-    }
-}
-
-let currentTabs: Map<number, ActiveDomainSession> = new Map();
+let currentTabs: Map<number, IActiveDomainSession> = new Map();
 
 // Monitor tabs that change domains
-browser.tabs.onUpdated.addListener((tabID, changeInfo) => {
+browser.tabs.onUpdated.addListener(async (tabID, changeInfo) => {
     // Quick return if the url hasn't changed or the tab isn't a webpage
     // https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/tabs/TAB_ID_NONE
     if (!changeInfo.url || tabID === browser.tabs.TAB_ID_NONE) return;
@@ -102,61 +62,45 @@ browser.tabs.onUpdated.addListener((tabID, changeInfo) => {
     const newDomain = getDomain(changeInfo.url);
     const oldDomain = currentTabs.get(tabID)?.domain;
 
-    // Update ActiveTab if domain has changed
+    // Update active domain session if domain has changed
     // Remove it if the new domain is undefined
     if (newDomain) {
         if (oldDomain !== newDomain) {
-            currentTabs.set(tabID, new ActiveDomainSession(newDomain));
+            currentTabs.set(tabID, {
+                domain: newDomain,
+                sessionUUID: uuid(),
+                startTime: Date.now()
+            });
             verb_log("Updated domain for tab " + tabID + " to " + newDomain + " (was " + oldDomain + ")");
         } else {
             verb_log("Tab " + tabID + " (" + newDomain + ") changed URL but stayed on the same domain");
         }
     } else {
         // Doesn't error on failure so always call
-        saveRemoveDomainSession(tabID);
+        await saveRemoveDomainSession(tabID);
         verb_log("Tab " + tabID + " (" + oldDomain + ") changed to a non-web URI");
     }
 });
 
 // Clean up currentTabs when a tab is closed
-browser.tabs.onRemoved.addListener((tabID, _) => saveRemoveDomainSession(tabID));
+browser.tabs.onRemoved.addListener(async (tabID, _) => saveRemoveDomainSession(tabID));
 
 /**
  * Saves a current ActiveDomainSession from currentTabs to browser storage as a DomainSession, and then
  * removes this from currentTabs
  */
-function saveRemoveDomainSession(tabID: number) {
+async function saveRemoveDomainSession(tabID: number) {
     let endedSession = currentTabs.get(tabID);
     if (endedSession) {
-        browser.storage.local.get(DOMAIN_SESSIONS)
-            .then(data => {
-                let domainSessions: Map<string, DomainSession[]> = data[DOMAIN_SESSIONS];
-                // Initialise map if it doesn't already exist
-                if (!domainSessions) {
-                    verb_log("Created domain session map")
-                    domainSessions = new Map<string, DomainSession[]>();
-                }
-
-                // TODO: why does this have to be asserted as defined when we've already checked for it
-                let sessionList = domainSessions.get(endedSession!.domain);
-                if (sessionList) {
-                    // If there are already sessions to this domain
-                    sessionList.push(endedSession!.archive());
-                } else {
-                    // First session on this domain, create the map entry
-                    verb_log("First session on " + endedSession!.domain);
-                    domainSessions.set(endedSession!.domain, [endedSession!.archive()]);
-                }
-
-                let temp: any = new Object;
-                temp[DOMAIN_SESSIONS] = domainSessions;
-                return browser.storage.local.set(temp);
-            }).then(() => {
-                verb_log("Session " + endedSession!.uuid + " on " + endedSession!.domain + " saved");
-            }).catch(err => {
-                console.error("Error saving session " + endedSession!.uuid + " on " + endedSession!.domain + " (" +
-                    err + ")");
-            });
+        await DATABASE.domainSessions.put({
+            endTime: Date.now(),
+            ...endedSession
+        }).then(_ => {
+            verb_log("Session " + endedSession!.sessionUUID + " on " + endedSession!.domain + " saved");
+        }).catch(e => {
+            console.error("Failed to save domain session " + endedSession!.domain + ": " + e);
+            // TODO: remove any tracker requests with this UUID?
+        });
     }
     currentTabs.delete(tabID);
 }

@@ -1,10 +1,5 @@
+import Dexie from "dexie";
 import psl from "psl";
-
-export const FLAGGED_HOSTS = "siphonFlaggedHosts";
-export const DOMAIN_SESSIONS = "siphonDomainSessions";
-export const TRACKER_REQUESTS = "siphonTrackerRequests";
-
-const VERBOSE = true;
 
 // https://www.sistrix.com/ask-sistrix/technical-seo/site-structure/what-is-the-difference-between-a-url-domain-subdomain-hostname-etc
 export function getHostname(url: string): string | null {
@@ -18,7 +13,7 @@ export function getHostname(url: string): string | null {
         // Now we just check if we have a proper website (i.e. domain.tld)
 
         let hostname = parts[2];
-
+        
         if (hostname.split(".").length < 2) {
             return null;
         } else {
@@ -44,28 +39,39 @@ export function verb_err(msg: string) {
     if (VERBOSE) console.error(msg);
 }
 
-export class TrackerRequest {
-    readonly sessionUUID: string; // UUID of tab session
-    readonly bytesExchanged: number;
+class SiphonDatabase extends Dexie {
+    trackerRequests: Dexie.Table<ITrackerRequest>;
+    domainSessions:  Dexie.Table<IDomainSession,  string>;
 
-    constructor(sessionUUID: string, bytesExchanged: number) {
-        this.sessionUUID = sessionUUID;
-        this.bytesExchanged = bytesExchanged;
+    constructor() {
+        super("SiphonDatabase");
+        this.version(1).stores({
+            trackerRequests: ", hostname, sessionUUID, bytesExchanged", // No primary key
+            domainSessions: "sessionUUID, domain, bytesExchanged, startTime, endTime" // sessionUUID as primary key
+        });
+
+        this.trackerRequests = this.table("trackerRequests");
+        this.domainSessions = this.table("domainSessions");
     }
 }
 
-export class DomainSession {
-    readonly sessionUUID: string; // UUID of tab session
+interface ITrackerRequest {
+    readonly sessionUUID: string;
+    readonly hostname: string;
     readonly bytesExchanged: number;
+}
+
+export interface IActiveDomainSession {
+    readonly domain: string;
+    readonly sessionUUID: string;
     readonly startTime: number;
-    readonly endTime: number;
-
-    constructor(sessionID: string, startTime: number, endTime: number) {
-        this.sessionUUID = sessionID;
-        this.startTime = startTime;
-        this.endTime = endTime;
-        // TODO: fetch all tracker requests during session and total
-        // Maybe do this lazily?
-        this.bytesExchanged = 0;
-    }
 }
+
+interface IDomainSession extends IActiveDomainSession {
+    readonly endTime: number;
+}
+
+export const FLAGGED_HOSTS = "siphonFlaggedHosts";
+export const DATABASE = new SiphonDatabase();
+
+const VERBOSE = true;

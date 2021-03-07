@@ -6,6 +6,7 @@ Siphon uses the following technologies:
 * [Parcel v2](https://github.com/parcel-bundler/parcel) - for building
 * [Tailwind](https://tailwindcss.com/) - for CSS, uses [PostCSS](https://github.com/postcss/postcss)
 * [TypeScript](https://www.typescriptlang.org/) - for a stronger type system and stricter coding style
+* [Dexie](https://dexie.org/) - for managing the local database
 
 ## Developing
 
