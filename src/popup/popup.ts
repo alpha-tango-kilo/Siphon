@@ -1,53 +1,65 @@
-import { getHostname } from "../lib";
+import fileSize from "filesize";
+import { browser, Tabs } from "webextension-polyfill-ts";
+import { getActiveDomainSession } from "../background/proxy";
+import { DATABASE } from "../lib";
 
-(function() {
-    let darkThemeButton = document.getElementById("dark-toggle")!;
-    darkThemeButton.addEventListener("click", toggleDarkTheme);
+let dataSentHeader = document.getElementById("data-sent-header")!;
+let dataSent = document.getElementById("data-sent")!;
+let trackersConnected = document.getElementById("trackers-connected")!;
 
-    // These have to be added programmatically or Parcel freaks out
-    let trackersGraphIcon = document.getElementById("trackers-graph-icon")!;
-    trackersGraphIcon.setAttribute("href", "../graphs/graphs.html?trackers");
+let darkThemeButton = document.getElementById("dark-toggle")!;
+darkThemeButton.addEventListener("click", toggleDarkTheme);
 
-    let websiteRankIcon = document.getElementById("website-rank-icon")!;
-    websiteRankIcon.setAttribute("href", "../graphs/graphs.html?rank");
+// These have to be added programmatically or Parcel freaks out
+let trackersGraphIcon = document.getElementById("trackers-graph-icon")!;
+trackersGraphIcon.setAttribute("href", "../graphs/graphs.html?trackers");
 
-    browser.tabs.onActivated.addListener(onChangeTab);
+let websiteRankIcon = document.getElementById("website-rank-icon")!;
+websiteRankIcon.setAttribute("href", "../graphs/graphs.html?rank");
 
-    // Initialise extension with current page
-    onChangeTab();
+browser.tabs.onActivated.addListener(onChangeTab);
 
-    function toggleDarkTheme() {
-        // TODO: make changes persistent
-        let root = document.getElementById("root")!;
-        if (root.classList.contains("dark")) {
-            root.classList.remove("dark");
-            darkThemeButton.textContent = "🌙"
-            console.log("Disabled dark theme");
-        } else {
-            root.classList.add("dark");
-            darkThemeButton.textContent = "☀";
-            console.log("Enabled dark theme");
-        }
+// Initialise extension with current page
+onChangeTab();
+
+function toggleDarkTheme() {
+    // TODO: make changes persistent
+    let root = document.getElementById("root")!;
+    if (root.classList.contains("dark")) {
+        root.classList.remove("dark");
+        darkThemeButton.textContent = "🌙"
+        console.log("Disabled dark theme");
+    } else {
+        root.classList.add("dark");
+        darkThemeButton.textContent = "☀";
+        console.log("Enabled dark theme");
     }
+}
 
-    function getActiveTab(): Promise<browser.tabs.Tab> {
-        return new Promise((resolve) => {
-            resolve(browser.tabs.query({ active: true }).then((tabs) => {
-                return tabs[0];
-            }));
-        });
-    }
+async function getActiveTab(): Promise<Tabs.Tab> {
+    return browser.tabs.query({ active: true })
+        .then(tabList => tabList[0]);
+}
 
-    function onChangeTab() {
-        let pCurrentPageStatistics = document.getElementById("current-page-statistics")!;
+async function onChangeTab() {
+    console.log("On change tab called");
+    let activeTab = await getActiveTab();
+    if (activeTab.id === undefined) return;
 
-        getActiveTab().then((tab) => {
-            if (typeof tab.url === 'undefined') return;
-            let hostname = getHostname(tab.url);
-            if (typeof hostname === 'undefined')
-                pCurrentPageStatistics.textContent = "Unsupported page";
-            else
-                pCurrentPageStatistics.textContent = hostname;
-        });
-    }
-}());
+    console.log("Got active tab");
+
+    let session = getActiveDomainSession(activeTab.id);
+    if (session === undefined) return;
+
+    console.log("Got active domain session");
+
+    let bytesSent = await DATABASE.totalBytesSentDuringSession(session.sessionUUID);
+    let bytesSentString = fileSize(bytesSent, { fullform: true });
+
+    dataSentHeader.innerText = "Data sent while visiting " + session.domain;
+    dataSent.innerText = "While viewing " + session.domain + ", " + bytesSentString + " of your data has been sent to third parties known to track you";
+
+    let hostsConnectTo = await DATABASE.uniqueHostsConnectedToDuring(session.sessionUUID);
+    // TODO: list some items
+    trackersConnected.innerText = session.domain + " has connected to " + hostsConnectTo.size + " different tracking hosts, including ...";
+}

@@ -71,7 +71,7 @@ class SiphonDatabase extends Dexie {
             .toArray();
     }
 
-    private async totalBytesSentDuringSession(sessionUUID: string): Promise<number> {
+    async totalBytesSentDuringSession(sessionUUID: string): Promise<number> {
         return this.trackerBytesTotal("sessionUUID", sessionUUID);
     }
 
@@ -85,6 +85,14 @@ class SiphonDatabase extends Dexie {
             .equals(searchTerm)
             .toArray()
             .then(list => list.reduce((acc, trackerRequest) => acc + trackerRequest.bytesExchanged, 0));
+    }
+
+    async uniqueHostsConnectedToDuring(sessionUUID: string): Promise<Set<string>> {
+        let requestHosts = await this.trackerRequests
+            .where("sessionUUID")
+            .equals(sessionUUID)
+            .toArray();
+        return new Set(requestHosts.map(trackerRequest => trackerRequest.hostname));
     }
 }
 
