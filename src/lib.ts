@@ -46,8 +46,9 @@ class SiphonDatabase extends Dexie {
     constructor() {
         super("SiphonDatabase");
         this.version(1).stores({
-            trackerRequests: ", hostname, sessionUUID, bytesExchanged", // No primary key
-            domainSessions: "sessionUUID, domain, bytesExchanged, startTime, endTime" // sessionUUID as primary key
+            // Include only indexed columns
+            trackerRequests: ", hostname, sessionUUID", // No primary key
+            domainSessions: "sessionUUID, domain, startTime, endTime" // sessionUUID as primary key
         });
 
         this.trackerRequests = this.table("trackerRequests");
