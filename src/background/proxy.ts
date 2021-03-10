@@ -43,7 +43,7 @@ async function recordRequest(requestDetails: WebRequest.OnCompletedDetailsType) 
         sessionUUID: activeDomainSession.sessionUUID,
         hostname,
         bytesExchanged
-    }).then(_ => {
+    }).then(() => {
         verb_log(new Date().toLocaleTimeString() + ": " + activeDomainSession.domain + " sent " + requestDetails.method +
         " request to " + hostname + ", total data sent/received " + bytesExchanged + " bytes");
     });
@@ -103,6 +103,11 @@ async function saveRemoveDomainSession(tabID: number) {
         });
     }
     currentTabs.delete(tabID);
+}
+
+export function getActiveDomainSession(tabID: number): IActiveDomainSession | undefined {
+    verb_log("Requested tab " + tabID);
+    return currentTabs.get(tabID);
 }
 
 // STORING AND LOADING DOMAINS
