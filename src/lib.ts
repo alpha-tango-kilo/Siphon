@@ -113,6 +113,7 @@ interface IDomainSession extends IActiveDomainSession {
 }
 
 export const FLAGGED_HOSTS = "siphonFlaggedHosts";
+export const DARK_MODE = "siphonDarkMode";
 export const DATABASE = new SiphonDatabase();
 
 const VERBOSE = true;
