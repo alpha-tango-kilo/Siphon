@@ -1,20 +1,22 @@
 import fileSize from "filesize";
 import { browser, Tabs } from "webextension-polyfill-ts";
 import { getActiveDomainSession } from "../background/proxy";
-import { DATABASE } from "../lib";
+import { DARK_MODE, DATABASE, verb_log } from "../lib";
 
-let dataSentHeader = document.getElementById("data-sent-header")!;
-let dataSent = document.getElementById("data-sent")!;
-let trackersConnected = document.getElementById("trackers-connected")!;
+const dataSentHeader = document.getElementById("data-sent-header")!;
+const dataSent = document.getElementById("data-sent")!;
+const trackersConnected = document.getElementById("trackers-connected")!;
 
-let darkThemeButton = document.getElementById("dark-toggle")!;
+let dark = true;
+const root = document.getElementById("root")!; // Used to apply dark theme
+const darkThemeButton = document.getElementById("dark-toggle")!;
 darkThemeButton.addEventListener("click", toggleDarkTheme);
 
 // These have to be added programmatically or Parcel freaks out
-let trackersGraphIcon = document.getElementById("trackers-graph-icon")!;
+const trackersGraphIcon = document.getElementById("trackers-graph-icon")!;
 trackersGraphIcon.setAttribute("href", "../graphs/graphs.html?trackers");
 
-let websiteRankIcon = document.getElementById("website-rank-icon")!;
+const websiteRankIcon = document.getElementById("website-rank-icon")!;
 websiteRankIcon.setAttribute("href", "../graphs/graphs.html?rank");
 
 browser.tabs.onActivated.addListener(onChangeTab);
@@ -22,19 +24,47 @@ browser.tabs.onActivated.addListener(onChangeTab);
 // Initialise extension with current page
 onChangeTab();
 
+// POP-UP THEMING
+
 function toggleDarkTheme() {
-    // TODO: make changes persistent
-    let root = document.getElementById("root")!;
-    if (root.classList.contains("dark")) {
-        root.classList.remove("dark");
-        darkThemeButton.textContent = "🌙"
-        console.log("Disabled dark theme");
-    } else {
+    dark = !dark;
+    setDarkTheme(dark);
+}
+
+function setDarkTheme(enabled: boolean, save?: boolean) {
+    verb_log("Setting dark theme: " + enabled);
+    root.classList.remove("dark");
+    if (enabled) {
         root.classList.add("dark");
         darkThemeButton.textContent = "☀";
-        console.log("Enabled dark theme");
+    } else {
+        darkThemeButton.textContent = "🌙";
     }
+    // Persist if save unset or true
+    if (save !== false) {
+        let temp: any = {};
+        temp[DARK_MODE] = enabled;
+        browser.storage.local.set(temp)
+            .then(() => verb_log("Saved dark mode setting: " + enabled))
+            .catch(() => console.warn("Failed to save dark mode setting"));
+    }  
 }
+
+function loadTheme() {
+    browser.storage.local.get(DARK_MODE)
+        .then((data) => {
+            dark = data[DARK_MODE];
+            setDarkTheme(dark, false);
+            verb_log("Dark theme setting loaded from browser storage (" + dark + ")");
+        // Load dark theme by default if setting not found
+        }).catch(_ => setDarkTheme(true));
+}
+
+// TODO: these don't work?
+browser.runtime.onStartup.addListener(loadTheme);
+browser.runtime.onInstalled.addListener(_ => setTimeout(setDarkTheme, 500, dark));
+
+// POP-UP INFORMATION
 
 async function getActiveTab(): Promise<Tabs.Tab> {
     return browser.tabs.query({ active: true })
