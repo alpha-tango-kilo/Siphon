@@ -12,6 +12,9 @@ module.exports = {
       "1/2": "50%",
       "3/4": "75%",
       "full": "100%",
+      "sm": "24rem",
+      "md": "28rem",
+      "lg": "32rem"
     },
     minHeight: {
       "0": "0",
