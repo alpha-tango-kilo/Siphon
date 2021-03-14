@@ -23,12 +23,22 @@ websiteRankIcon.setAttribute("href", "../graphs/graphs.html?rank");
 
 // INITIALISATION FUNCTIONS
 
-onChangeTab();
+onChange();
 loadTheme();
 
 // LISTENERS
 
-browser.tabs.onActivated.addListener(onChangeTab);
+browser.tabs.onActivated.addListener(onChange);
+
+// Update UI if request completes while extension is open
+// TODO: don't do anything if no data the user is seeing will have changed?
+browser.webRequest.onCompleted.addListener(async requestDetails => {
+    let currentTabID = await getActiveTab().then(tab => tab.id);
+    if (currentTabID === requestDetails.tabId) {
+        // verb_log("Updating extension as request completed while it was open");
+        await onChange();
+    }
+}, { urls: ["<all_urls>"] });
 
 // POP-UP THEMING
 
@@ -37,7 +47,6 @@ function toggleDarkTheme() {
 }
 
 function setDarkTheme(enabled: boolean, save?: boolean) {
-    verb_log("Setting dark theme: " + enabled);
     root.classList.remove("dark");
     if (enabled) {
         root.classList.add("dark");
@@ -75,17 +84,16 @@ async function getActiveTab(): Promise<Tabs.Tab> {
         .then(tabList => tabList[0]);
 }
 
-async function onChangeTab() {
-    console.log("On change tab called");
+/**
+ * Updates the information displayed in the pop-up to be contextual to to the current tab's domain
+ * Falls back on a tab agnostic setup if there is no IActiveDomainSession for the tab
+ */
+async function onChange() {
     let activeTab = await getActiveTab();
     if (activeTab.id === undefined) return;
 
-    console.log("Got active tab");
-
     let session = getActiveDomainSession(activeTab.id);
-    if (session === undefined) return;
-
-    console.log("Got active domain session");
+    if (session === undefined) return; // TODO: return to a 'default' state that's tab agnostic
 
     let bytesSent = await DATABASE.totalBytesSentDuringSession(session.sessionUUID);
     let bytesSentString = fileSize(bytesSent, { fullform: true });
