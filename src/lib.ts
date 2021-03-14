@@ -1,5 +1,8 @@
 import Dexie from "dexie";
 import psl from "psl";
+import { v4 as uuid } from "uuid";
+
+// URI MANIPULATION
 
 // https://www.sistrix.com/ask-sistrix/technical-seo/site-structure/what-is-the-difference-between-a-url-domain-subdomain-hostname-etc
 export function getHostname(url: string): string | null {
@@ -31,6 +34,8 @@ export function getDomain(url: string): string | null {
     }
 }
 
+// DEBUGGING/LOGGING
+
 export function verb_log(msg: string) {
     if (VERBOSE) console.log(msg);
 }
@@ -38,6 +43,8 @@ export function verb_log(msg: string) {
 export function verb_err(msg: string) {
     if (VERBOSE) console.error(msg);
 }
+
+// DATABASE
 
 class SiphonDatabase extends Dexie {
     trackerRequests: Dexie.Table<ITrackerRequest>;
@@ -110,6 +117,18 @@ export interface IActiveDomainSession {
 
 interface IDomainSession extends IActiveDomainSession {
     readonly endTime: number;
+}
+
+export class ActiveDomainSession implements IActiveDomainSession {
+    domain: string;
+    sessionUUID: string;
+    startTime: number;
+    
+    constructor(domain: string) {
+        this.domain = domain;
+        this.sessionUUID = uuid();
+        this.startTime = Date.now();
+    }
 }
 
 export const FLAGGED_HOSTS = "siphonFlaggedHosts";
