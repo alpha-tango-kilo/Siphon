@@ -1,6 +1,5 @@
 import { browser, WebRequest } from "webextension-polyfill-ts";
-import { getDomain, getHostname, verb_log, FLAGGED_HOSTS, DATABASE, IActiveDomainSession } from "../lib";
-import { v4 as uuid } from "uuid";
+import { getDomain, getHostname, verb_log, FLAGGED_HOSTS, DATABASE, IActiveDomainSession, ActiveDomainSession } from "../lib";
 
 const listLocation = "https://v.firebog.net/hosts/Easyprivacy.txt";
 let flaggedHosts: string[] = [];
@@ -66,24 +65,40 @@ browser.tabs.onUpdated.addListener(async (tabID, changeInfo) => {
     // Remove it if the new domain is undefined
     if (newDomain) {
         if (oldDomain !== newDomain) {
-            currentTabs.set(tabID, {
-                domain: newDomain,
-                sessionUUID: uuid(),
-                startTime: Date.now()
-            });
+            currentTabs.set(tabID, new ActiveDomainSession(newDomain));
             verb_log("Updated domain for tab " + tabID + " to " + newDomain + " (was " + oldDomain + ")");
         } else {
             verb_log("Tab " + tabID + " (" + newDomain + ") changed URL but stayed on the same domain");
         }
     } else {
         // Doesn't error on failure so always call
-        await saveRemoveDomainSession(tabID);
-        verb_log("Tab " + tabID + " (" + oldDomain + ") changed to a non-web URI");
+        saveRemoveDomainSession(tabID)
+            .then(() => verb_log("Tab " + tabID + " (" + oldDomain + ") changed to a non-web URI"));
     }
 });
 
 // Clean up currentTabs when a tab is closed
 browser.tabs.onRemoved.addListener(async (tabID, _) => saveRemoveDomainSession(tabID));
+
+
+browser.runtime.onStartup.addListener(scanAllTabs);
+browser.runtime.onInstalled.addListener(scanAllTabs);
+/**
+ * Check for any open tabs when browser is launched, and add them to currentTabs if there's not an existing session
+ */
+function scanAllTabs() {
+    browser.tabs.query({}) // Get all tabs
+        .then(tabs => {
+            for (let tab of tabs) {
+                if (tab.url === undefined || tab.id === undefined || currentTabs.get(tab.id) !== undefined) continue;
+
+                let domain = getDomain(tab.url);
+                if (domain === null) continue;
+
+                currentTabs.set(tab.id, new ActiveDomainSession(domain));
+            }
+        });
+}
 
 /**
  * Saves a current ActiveDomainSession from currentTabs to browser storage as a DomainSession, and then
@@ -159,12 +174,5 @@ function updateHosts() {
     });
 }
 
-// ON START UP
-browser.runtime.onStartup.addListener(() => {
-    loadHosts();
-});
-
-// ON INSTALL
-browser.runtime.onInstalled.addListener(() => {
-    updateHosts();
-});
+browser.runtime.onStartup.addListener(loadHosts);
+browser.runtime.onInstalled.addListener(updateHosts);
