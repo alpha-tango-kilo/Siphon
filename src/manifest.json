@@ -7,11 +7,6 @@
         "48": "icons/siphon.svg",
         "96": "icons/siphon.svg"
     },
-    "browser_specific_settings": {
-        "gecko": {
-            "strict_min_version": "56.0a1"
-        }
-    },
     "background": {
         "scripts": [
             "background/proxy.ts"
