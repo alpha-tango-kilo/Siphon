@@ -31,13 +31,16 @@ async function recordRequest(requestDetails: WebRequest.OnCompletedDetailsType) 
 
     const activeDomainSession = currentTabs.get(requestDetails.tabId);
     // TODO: Not sure if this will ever happen or not
+    // TODO: THIS HAPPENS, unsure how to reproduce
     if (activeDomainSession === undefined) {
-        return Promise.reject("Couldn't find active domain session for tab ID " + requestDetails.tabId +
+        console.error("Couldn't find active domain session for tab ID " + requestDetails.tabId +
             " which made a request to " + hostname);
+        return;
     }
 
     const bytesExchanged = requestDetails.requestSize + requestDetails.responseSize;
 
+    // TODO: fix
     return DATABASE.trackerRequests.put({
         sessionUUID: activeDomainSession.sessionUUID,
         hostname,
@@ -45,6 +48,8 @@ async function recordRequest(requestDetails: WebRequest.OnCompletedDetailsType) 
     }).then(() => {
         verb_log(new Date().toLocaleTimeString() + ": " + activeDomainSession.domain + " sent " + requestDetails.method +
         " request to " + hostname + ", total data sent/received " + bytesExchanged + " bytes");
+    }).catch(err => {
+        console.error("Failed to save tracker request to database (" + err + ")");
     });
 }
 
