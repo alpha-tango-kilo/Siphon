@@ -3,11 +3,12 @@ import { browser, Tabs } from "webextension-polyfill-ts";
 import { getActiveDomainSession } from "../background/proxy";
 import { DARK_MODE, DATABASE, verb_log } from "../lib";
 
+// INITIALISE REFERENCES & ATTRIBUTES
+
 const dataSentHeader = document.getElementById("data-sent-header")!;
 const dataSent = document.getElementById("data-sent")!;
 const trackersConnected = document.getElementById("trackers-connected")!;
 
-let dark = true;
 const root = document.getElementById("root")!; // Used to apply dark theme
 const darkThemeButton = document.getElementById("dark-toggle")!;
 darkThemeButton.addEventListener("click", toggleDarkTheme);
@@ -19,16 +20,20 @@ trackersGraphIcon.setAttribute("href", "../graphs/graphs.html?trackers");
 const websiteRankIcon = document.getElementById("website-rank-icon")!;
 websiteRankIcon.setAttribute("href", "../graphs/graphs.html?rank");
 
-browser.tabs.onActivated.addListener(onChangeTab);
 
-// Initialise extension with current page
+// INITIALISATION FUNCTIONS
+
 onChangeTab();
+loadTheme();
+
+// LISTENERS
+
+browser.tabs.onActivated.addListener(onChangeTab);
 
 // POP-UP THEMING
 
 function toggleDarkTheme() {
-    dark = !dark;
-    setDarkTheme(dark);
+    setDarkTheme(!root.classList.contains("dark"));
 }
 
 function setDarkTheme(enabled: boolean, save?: boolean) {
@@ -53,16 +58,15 @@ function setDarkTheme(enabled: boolean, save?: boolean) {
 function loadTheme() {
     browser.storage.local.get(DARK_MODE)
         .then((data) => {
-            dark = data[DARK_MODE];
+            let dark = data[DARK_MODE] !== undefined ? data[DARK_MODE] : true; // becomes true if undefined
             setDarkTheme(dark, false);
             verb_log("Dark theme setting loaded from browser storage (" + dark + ")");
-        // Load dark theme by default if setting not found
-        }).catch(_ => setDarkTheme(true));
+        }).catch(err => {
+            console.error("Failed to access storage to check dark theme setting (" + err + " )" +
+                "\nThis error shouldn't happen unless the manifest storage permission is set incorrectly");
+            setDarkTheme(true);
+        });
 }
-
-// TODO: these don't work?
-browser.runtime.onStartup.addListener(loadTheme);
-browser.runtime.onInstalled.addListener(_ => setTimeout(setDarkTheme, 500, dark));
 
 // POP-UP INFORMATION
 
