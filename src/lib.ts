@@ -1,6 +1,6 @@
 import Dexie from "dexie";
 import psl from "psl";
-import { v4 as uuid } from "uuid";
+import { v5 as uuid } from "uuid";
 
 // URI MANIPULATION
 
@@ -126,13 +126,14 @@ export class ActiveDomainSession implements IActiveDomainSession {
     
     constructor(domain: string) {
         this.domain = domain;
-        this.sessionUUID = uuid();
         this.startTime = Date.now();
+        this.sessionUUID = uuid(this.domain + this.startTime, SIPHON_NAMESPACE);
     }
 }
 
 export const FLAGGED_HOSTS = "siphonFlaggedHosts";
 export const DARK_MODE = "siphonDarkMode";
 export const DATABASE = new SiphonDatabase();
+export const SIPHON_NAMESPACE = "12c1cbc1-42b0-44e3-828a-ddfd9f1077e4";
 
 const VERBOSE = true;
