@@ -38,11 +38,11 @@ export function getDomain(url: string): string | null {
 // DEBUGGING/LOGGING
 
 export function verb_log(msg: string) {
-    if (VERBOSE) console.log(msg);
+    if (VERBOSE) console.log(new Date().toLocaleTimeString() + ": " + msg);
 }
 
 export function verb_err(msg: string) {
-    if (VERBOSE) console.error(msg);
+    if (VERBOSE) console.error(new Date().toLocaleTimeString() + ": " + msg);
 }
 
 // DATABASE
