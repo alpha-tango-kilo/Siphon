@@ -1,5 +1,5 @@
 import { browser, WebRequest } from "webextension-polyfill-ts";
-import { getDomain, getHostname, verb_log, FLAGGED_HOSTS, DATABASE, IActiveDomainSession, ActiveDomainSession, fileSizeString } from "../lib";
+import { getDomain, getHostname, verb_log, FLAGGED_HOSTS, DATABASE, IActiveDomainSession, ActiveDomainSession, fileSizeString, CONNECTION_NAME } from "../lib";
 
 const listLocation = "https://v.firebog.net/hosts/Easyprivacy.txt";
 let flaggedHosts: string[] = [];
@@ -54,7 +54,27 @@ async function recordRequest(requestDetails: WebRequest.OnCompletedDetailsType) 
 
 // TAB WATCHING
 
+// TODO: continuation of sessions between shutdown & start-up
 let currentTabs: Map<number, IActiveDomainSession> = new Map();
+
+/**
+ * Listen for a connection being made from the pop-up
+ * If it's the pop-up add a listener that tries to parse its messages as a number and then returns
+ * the corresponding IActiveDomainSession or undefined
+ */
+browser.runtime.onConnect.addListener(port => {
+    if (port.name !== CONNECTION_NAME) return;
+    port.onMessage.addListener((message, port) => {
+        // Assume they're requesting an ActiveDomainSession
+        let tabID = parseInt(message);
+
+        if (tabID === NaN) {
+            console.warn("Received message from pop-up that couldn't be parse to a number (" + message + ")");
+        } else {
+            port.postMessage(currentTabs.get(tabID));
+        }
+    })
+});
 
 // Monitor tabs that change domains
 browser.tabs.onUpdated.addListener(async (tabID, changeInfo) => {
@@ -83,7 +103,6 @@ browser.tabs.onUpdated.addListener(async (tabID, changeInfo) => {
 
 // Clean up currentTabs when a tab is closed
 browser.tabs.onRemoved.addListener(async (tabID, _) => saveRemoveDomainSession(tabID));
-
 
 browser.runtime.onStartup.addListener(scanAllTabs);
 browser.runtime.onInstalled.addListener(scanAllTabs);
@@ -122,11 +141,6 @@ async function saveRemoveDomainSession(tabID: number) {
         });
     }
     currentTabs.delete(tabID);
-}
-
-export function getActiveDomainSession(tabID: number): IActiveDomainSession | undefined {
-    verb_log("Requested tab " + tabID);
-    return currentTabs.get(tabID);
 }
 
 // STORING AND LOADING DOMAINS

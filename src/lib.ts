@@ -144,5 +144,6 @@ export const FLAGGED_HOSTS = "siphonFlaggedHosts";
 export const DARK_MODE = "siphonDarkMode";
 export const DATABASE = new SiphonDatabase();
 export const SIPHON_NAMESPACE = "12c1cbc1-42b0-44e3-828a-ddfd9f1077e4";
+export const CONNECTION_NAME = "Siphon pop-up";
 
 const VERBOSE = true;
