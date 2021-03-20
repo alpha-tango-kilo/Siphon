@@ -1,7 +1,6 @@
-import fileSize from "filesize";
 import { browser, Tabs } from "webextension-polyfill-ts";
 import { getActiveDomainSession } from "../background/proxy";
-import { DARK_MODE, DATABASE, verb_log } from "../lib";
+import { DARK_MODE, DATABASE, fileSizeString, verb_log } from "../lib";
 
 // INITIALISE REFERENCES & ATTRIBUTES
 
@@ -96,7 +95,7 @@ async function onChange() {
     if (session === undefined) return; // TODO: return to a 'default' state that's tab agnostic
 
     let bytesSent = await DATABASE.totalBytesSentDuringSession(session.sessionUUID);
-    let bytesSentString = fileSize(bytesSent, { fullform: true });
+    let bytesSentString = fileSizeString(bytesSent);
 
     dataSentHeader.innerText = "Data sent while visiting " + session.domain;
     dataSent.innerText = "While viewing " + session.domain + ", " + bytesSentString + " of your data has been sent to third parties known to track you";

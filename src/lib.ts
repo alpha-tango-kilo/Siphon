@@ -1,4 +1,5 @@
 import Dexie from "dexie";
+import fileSize from "filesize";
 import psl from "psl";
 import { v5 as uuid } from "uuid";
 
@@ -130,6 +131,14 @@ export class ActiveDomainSession implements IActiveDomainSession {
         this.sessionUUID = uuid(this.domain + this.startTime, SIPHON_NAMESPACE);
     }
 }
+
+// MISC
+
+export function fileSizeString(bytes: number): string {
+    return fileSize(bytes, { fullform: true, round: 1 });
+}
+
+// CONSTANTS
 
 export const FLAGGED_HOSTS = "siphonFlaggedHosts";
 export const DARK_MODE = "siphonDarkMode";

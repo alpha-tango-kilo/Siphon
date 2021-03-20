@@ -1,5 +1,5 @@
 import { browser, WebRequest } from "webextension-polyfill-ts";
-import { getDomain, getHostname, verb_log, FLAGGED_HOSTS, DATABASE, IActiveDomainSession, ActiveDomainSession } from "../lib";
+import { getDomain, getHostname, verb_log, FLAGGED_HOSTS, DATABASE, IActiveDomainSession, ActiveDomainSession, fileSizeString } from "../lib";
 
 const listLocation = "https://v.firebog.net/hosts/Easyprivacy.txt";
 let flaggedHosts: string[] = [];
@@ -46,7 +46,7 @@ async function recordRequest(requestDetails: WebRequest.OnCompletedDetailsType) 
         bytesExchanged
     }).then(() => {
         verb_log(new Date().toLocaleTimeString() + ": " + activeDomainSession.domain + " sent " + requestDetails.method +
-        " request to " + hostname + ", total data sent/received " + bytesExchanged + " bytes");
+            " request to " + hostname + ", total data sent/received " + fileSizeString(bytesExchanged));
     }).catch(err => {
         console.error("Failed to save tracker request to database (" + err + ")");
     });
