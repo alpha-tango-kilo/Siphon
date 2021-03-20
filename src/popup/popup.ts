@@ -1,6 +1,5 @@
 import { browser, Tabs } from "webextension-polyfill-ts";
-import { getActiveDomainSession } from "../background/proxy";
-import { DARK_MODE, DATABASE, fileSizeString, verb_log } from "../lib";
+import { CONNECTION_NAME, DARK_MODE, DATABASE, fileSizeString, IActiveDomainSession, verb_log } from "../lib";
 
 // INITIALISE REFERENCES & ATTRIBUTES
 
@@ -19,15 +18,18 @@ trackersGraphIcon.setAttribute("href", "../graphs/graphs.html?trackers");
 const websiteRankIcon = document.getElementById("website-rank-icon")!;
 websiteRankIcon.setAttribute("href", "../graphs/graphs.html?rank");
 
+// undefined will cause the connection to be made to the extension's own background script
+// https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/runtime/connect
+const backgroundScript = browser.runtime.connect(undefined, { name: CONNECTION_NAME });
 
 // INITIALISATION FUNCTIONS
 
-onChange();
+requestActiveDomainSession();
 loadTheme();
 
 // LISTENERS
 
-browser.tabs.onActivated.addListener(onChange);
+browser.tabs.onActivated.addListener(requestActiveDomainSession);
 
 // Update UI if request completes while extension is open
 // TODO: don't do anything if no data the user is seeing will have changed?
@@ -35,9 +37,16 @@ browser.webRequest.onCompleted.addListener(async requestDetails => {
     let currentTabID = await getActiveTab().then(tab => tab.id);
     if (currentTabID === requestDetails.tabId) {
         // verb_log("Updating extension as request completed while it was open");
-        await onChange();
+        return requestActiveDomainSession();
     }
 }, { urls: ["<all_urls>"] });
+
+/**
+ * Messages coming from the background script should always be IActiveDomainSession | undefined,
+ * which will have been requested by the pop-up calling requestActiveDomainSession
+ * This is passed to updatePopUp to refresh the UI
+ */
+backgroundScript.onMessage.addListener((message: IActiveDomainSession, _) => updatePopUp(message));
 
 // POP-UP THEMING
 
@@ -83,15 +92,18 @@ async function getActiveTab(): Promise<Tabs.Tab> {
         .then(tabList => tabList[0]);
 }
 
+async function requestActiveDomainSession() {
+    let activeTab = await getActiveTab();
+    if (activeTab.id === undefined) return;
+
+    backgroundScript.postMessage(activeTab.id);
+}
+
 /**
  * Updates the information displayed in the pop-up to be contextual to to the current tab's domain
  * Falls back on a tab agnostic setup if there is no IActiveDomainSession for the tab
  */
-async function onChange() {
-    let activeTab = await getActiveTab();
-    if (activeTab.id === undefined) return;
-
-    let session = getActiveDomainSession(activeTab.id);
+async function updatePopUp(session: IActiveDomainSession | undefined) {   
     if (session === undefined) return; // TODO: return to a 'default' state that's tab agnostic
 
     let bytesSent = await DATABASE.totalBytesSentDuringSession(session.sessionUUID);
