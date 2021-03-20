@@ -45,8 +45,8 @@ async function recordRequest(requestDetails: WebRequest.OnCompletedDetailsType) 
         hostname,
         bytesExchanged
     }).then(() => {
-        verb_log(new Date().toLocaleTimeString() + ": " + activeDomainSession.domain + " sent " + requestDetails.method +
-            " request to " + hostname + ", total data sent/received " + fileSizeString(bytesExchanged));
+        verb_log(activeDomainSession.domain + " sent " + requestDetails.method + " request to " +
+            hostname + ", total data sent/received " + fileSizeString(bytesExchanged));
     }).catch(err => {
         console.error("Failed to save tracker request to database (" + err + ")");
     });
