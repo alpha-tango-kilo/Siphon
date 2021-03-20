@@ -40,7 +40,6 @@ async function recordRequest(requestDetails: WebRequest.OnCompletedDetailsType) 
 
     const bytesExchanged = requestDetails.requestSize + requestDetails.responseSize;
 
-    // TODO: fix
     return DATABASE.trackerRequests.put({
         sessionUUID: activeDomainSession.sessionUUID,
         hostname,
