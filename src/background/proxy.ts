@@ -109,8 +109,8 @@ browser.runtime.onInstalled.addListener(scanAllTabs);
 /**
  * Check for any open tabs when browser is launched, and add them to currentTabs if there's not an existing session
  */
-function scanAllTabs() {
-    browser.tabs.query({}) // Get all tabs
+async function scanAllTabs() {
+    await browser.tabs.query({}) // Get all tabs
         .then(tabs => {
             for (let tab of tabs) {
                 if (tab.url === undefined || tab.id === undefined || currentTabs.get(tab.id) !== undefined) continue;
@@ -118,9 +118,12 @@ function scanAllTabs() {
                 let domain = getDomain(tab.url);
                 if (domain === null) continue;
 
+                verb_log("Found existing tab on " + domain + " (tab " + tab.id + "), creating session");
                 currentTabs.set(tab.id, new ActiveDomainSession(domain));
             }
         });
+    //verb_log("After scan (see below)");
+    //console.log(currentTabs);
 }
 
 /**
