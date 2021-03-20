@@ -120,9 +120,9 @@ interface IDomainSession extends IActiveDomainSession {
 }
 
 export class ActiveDomainSession implements IActiveDomainSession {
-    domain: string;
-    sessionUUID: string;
-    startTime: number;
+    readonly domain: string;
+    readonly sessionUUID: string;
+    readonly startTime: number;
     
     constructor(domain: string) {
         this.domain = domain;
