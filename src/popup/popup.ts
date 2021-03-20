@@ -29,7 +29,7 @@ loadTheme();
 
 // LISTENERS
 
-browser.tabs.onActivated.addListener(requestActiveDomainSession);
+browser.tabs.onActivated.addListener(_ => requestActiveDomainSession());
 
 // Update UI if request completes while extension is open
 // TODO: don't do anything if no data the user is seeing will have changed?
@@ -37,7 +37,7 @@ browser.webRequest.onCompleted.addListener(async requestDetails => {
     let currentTabID = await getActiveTab().then(tab => tab.id);
     if (currentTabID === requestDetails.tabId) {
         // verb_log("Updating extension as request completed while it was open");
-        return requestActiveDomainSession();
+        return requestActiveDomainSession(currentTabID);
     }
 }, { urls: ["<all_urls>"] });
 
@@ -92,11 +92,14 @@ async function getActiveTab(): Promise<Tabs.Tab> {
         .then(tabList => tabList[0]);
 }
 
-async function requestActiveDomainSession() {
-    let activeTab = await getActiveTab();
-    if (activeTab.id === undefined) return;
-
-    backgroundScript.postMessage(activeTab.id);
+async function requestActiveDomainSession(tabID?: number) {
+    if (tabID === undefined) {
+        let activeTab = await getActiveTab();
+        if (activeTab.id === undefined) return;
+        tabID = activeTab.id;
+    }
+    
+    backgroundScript.postMessage(tabID);
 }
 
 /**
