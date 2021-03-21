@@ -116,6 +116,22 @@ async function updatePopUp(session: IActiveDomainSession | undefined) {
     dataSent.innerText = `While viewing ${session.domain}, ${bytesSentString} of your data has been sent to third parties known to track you`;
 
     let hostsConnectTo = await DATABASE.uniqueHostsConnectedToDuring(session.sessionUUID);
-    // TODO: list some items
-    trackersConnected.innerText = session.domain + " has connected to " + hostsConnectTo.size + " different tracking hosts, including ...";
+    let iter = hostsConnectTo.values();
+    switch (hostsConnectTo.size) {
+        case 0:
+            trackersConnected.innerText = `${session.domain} hasn't connected to any tracking hosts yet`;
+            break;
+        case 1:
+            trackersConnected.innerText = `${session.domain} has connected to 1 tracking host: ${iter.next().value}`;
+            break;
+        case 2:
+            trackersConnected.innerText = `${session.domain} has connected to 2 tracking hosts: ${iter.next().value}, and ${iter.next().value}`;
+            break;
+        case 3:
+            trackersConnected.innerText = `${session.domain} has connected to 3 tracking hosts: ${iter.next().value}, ${iter.next().value}, and ${iter.next().value}`;
+            break;
+        default:
+            trackersConnected.innerText = `${session.domain} has connected to ${hostsConnectTo.size} tracking hosts, including ${iter.next().value}, ${iter.next().value}, and ${iter.next().value}`;
+            break;
+    }
 }
