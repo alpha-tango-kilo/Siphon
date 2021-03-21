@@ -15,7 +15,7 @@ let initFlaggedHosts = setInterval(() => {
     if (flaggedHosts.length > 0) {
         // Change hosts to MDN specified match pattern format
         // https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/Match_patterns
-        const matchPatterns = flaggedHosts.map(host => "*://" + host + "/*");
+        const matchPatterns = flaggedHosts.map(host => `*://${host}/*`);
         browser.webRequest.onCompleted.addListener(recordRequest, { urls: matchPatterns });
         clearTimeout(initFlaggedHosts);
         verb_log("Siphon is monitoring requests");
@@ -33,8 +33,7 @@ async function recordRequest(requestDetails: WebRequest.OnCompletedDetailsType) 
     // TODO: Not sure if this will ever happen or not
     // TODO: THIS HAPPENS, unsure how to reproduce
     if (activeDomainSession === undefined) {
-        console.error("Couldn't find active domain session for tab ID " + requestDetails.tabId +
-            " which made a request to " + hostname);
+        console.error(`Couldn't find active domain session for tab ID ${requestDetails.tabId}, which made a request to ${hostname}`);
         return;
     }
 
@@ -45,10 +44,9 @@ async function recordRequest(requestDetails: WebRequest.OnCompletedDetailsType) 
         hostname,
         bytesExchanged
     }).then(() => {
-        verb_log(activeDomainSession.domain + " sent " + requestDetails.method + " request to " +
-            hostname + ", total data sent/received " + fileSizeString(bytesExchanged));
+        verb_log(`${activeDomainSession.domain} sent ${requestDetails.method} request to ${hostname}, total data sent/received ${fileSizeString(bytesExchanged)}`);
     }).catch(err => {
-        console.error("Failed to save tracker request to database (" + err + ")");
+        console.error(`Failed to save tracker request to database (${err})`);
     });
 }
 
@@ -69,7 +67,7 @@ browser.runtime.onConnect.addListener(port => {
         let tabID = parseInt(message);
 
         if (tabID === NaN) {
-            console.warn("Received message from pop-up that couldn't be parse to a number (" + message + ")");
+            console.warn(`Received message from pop-up that couldn't be parsed to a number (${message})`);
         } else {
             port.postMessage(currentTabs.get(tabID));
         }
@@ -90,14 +88,14 @@ browser.tabs.onUpdated.addListener(async (tabID, changeInfo) => {
     if (newDomain) {
         if (oldDomain !== newDomain) {
             currentTabs.set(tabID, new ActiveDomainSession(newDomain));
-            verb_log("Updated domain for tab " + tabID + " to " + newDomain + " (was " + oldDomain + ")");
+            verb_log(`Updated domain for tab ${tabID} to ${newDomain} (was ${oldDomain})`);
         } else {
-            verb_log("Tab " + tabID + " (" + newDomain + ") changed URL but stayed on the same domain");
+            verb_log(`Tab ${tabID} (${newDomain}) changed URL but stayed on the same domain`);
         }
     } else {
         // Doesn't error on failure so always call
         saveRemoveDomainSession(tabID)
-            .then(() => verb_log("Tab " + tabID + " (" + oldDomain + ") changed to a non-web URI"));
+            .then(() => verb_log(`Tab "${tabID} (${oldDomain}) changed to a non-web URI`));
     }
 });
 
@@ -118,7 +116,7 @@ async function scanAllTabs() {
                 let domain = getDomain(tab.url);
                 if (domain === null) continue;
 
-                verb_log("Found existing tab on " + domain + " (tab " + tab.id + "), creating session");
+                verb_log(`Found existing tab on ${domain} (tab ${tab.id}), creating session`);
                 currentTabs.set(tab.id, new ActiveDomainSession(domain));
             }
         });
@@ -137,9 +135,9 @@ async function saveRemoveDomainSession(tabID: number) {
             endTime: Date.now(),
             ...endedSession
         }).then(_ => {
-            verb_log("Session " + endedSession!.sessionUUID + " on " + endedSession!.domain + " saved");
-        }).catch(e => {
-            console.error("Failed to save domain session " + endedSession!.domain + ": " + e);
+            verb_log(`Session ${endedSession!.sessionUUID} on ${endedSession!.domain} saved`);
+        }).catch(err => {
+            console.error(`Failed to save domain session ${endedSession!.domain} (${err})`);
             // TODO: remove any tracker requests with this UUID?
         });
     }
@@ -154,7 +152,7 @@ function saveHosts() {
     browser.storage.local.set(temp).then(() => {
         verb_log("Saved hosts to storage");
     }).catch(err => {
-        console.error("Failed to save hosts (" + err + ")");
+        console.error(`Failed to save hosts (${err})`);
     });
 }
 
@@ -183,15 +181,15 @@ function updateHosts() {
         if (response.ok) {
             return response.blob();
         } else {
-            throw new Error("Failed to fetch list (" + response.status + " " + response.statusText + ")");
+            throw new Error(`Failed to fetch list (${response.status} ${response.statusText})`);
         }
     }).then(blob => blob.text())
     .then(text => {
         flaggedHosts = text.split("\n");
-        verb_log("Fetched hosts file from " + listLocation + "\nRead " + flaggedHosts.length + " domains");
+        verb_log(`Fetched hosts file from ${listLocation}\nRead ${flaggedHosts.length} domains"`);
         saveHosts();
     }).catch(err => {
-        console.error("Failed to get hosts (" + err + ")");
+        console.error(`Failed to get hosts (${err})`);
     });
 }
 
