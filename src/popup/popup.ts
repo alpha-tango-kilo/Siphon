@@ -67,7 +67,7 @@ function setDarkTheme(enabled: boolean, save?: boolean) {
         let temp: any = {};
         temp[DARK_MODE] = enabled;
         browser.storage.local.set(temp)
-            .then(() => verb_log("Saved dark mode setting: " + enabled))
+            .then(() => verb_log(`Saved dark mode setting: ${enabled}`))
             .catch(() => console.warn("Failed to save dark mode setting"));
     }  
 }
@@ -77,10 +77,10 @@ function loadTheme() {
         .then((data) => {
             let dark = data[DARK_MODE] !== undefined ? data[DARK_MODE] : true; // becomes true if undefined
             setDarkTheme(dark, false);
-            verb_log("Dark theme setting loaded from browser storage (" + dark + ")");
+            verb_log(`Dark theme setting loaded from browser storage ${dark}`);
         }).catch(err => {
-            console.error("Failed to access storage to check dark theme setting (" + err + " )" +
-                "\nThis error shouldn't happen unless the manifest storage permission is set incorrectly");
+            console.error(`Failed to access storage to check dark theme setting (${err})
+                This error shouldn't happen unless the manifest storage permission is set incorrectly`);
             setDarkTheme(true);
         });
 }
@@ -111,9 +111,9 @@ async function updatePopUp(session: IActiveDomainSession | undefined) {
 
     let bytesSent = await DATABASE.totalBytesSentDuringSession(session.sessionUUID);
     let bytesSentString = fileSizeString(bytesSent);
-
-    dataSentHeader.innerText = "Data sent while visiting " + session.domain;
-    dataSent.innerText = "While viewing " + session.domain + ", " + bytesSentString + " of your data has been sent to third parties known to track you";
+    
+    dataSentHeader.innerText = `Data sent while visiting ${session.domain}`;
+    dataSent.innerText = `While viewing ${session.domain}, ${bytesSentString} of your data has been sent to third parties known to track you`;
 
     let hostsConnectTo = await DATABASE.uniqueHostsConnectedToDuring(session.sessionUUID);
     // TODO: list some items
