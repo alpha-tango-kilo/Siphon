@@ -1,7 +1,7 @@
 import { browser, WebRequest } from "webextension-polyfill-ts";
 import { getDomain, getHostname, verb_log, FLAGGED_HOSTS, DATABASE, IActiveDomainSession, ActiveDomainSession, fileSizeString, CONNECTION_NAME } from "../lib";
 
-const listLocation = "https://v.firebog.net/hosts/Easyprivacy.txt";
+const LIST_LOCATION = "https://v.firebog.net/hosts/Easyprivacy.txt";
 let flaggedHosts: string[] = [];
 
 // REQUEST WATCHING
@@ -174,11 +174,11 @@ function loadHosts() {
 }
 
 /**
- * Updates flaggedHosts by fetching content from listLocation
+ * Updates flaggedHosts by fetching content from LIST_LOCATION
  * Saves afterwards to local storage
  */
 function updateHosts() {
-    let req = new Request(listLocation);
+    let req = new Request(LIST_LOCATION);
 
     fetch(req).then(response => {
         if (response.ok) {
@@ -189,7 +189,7 @@ function updateHosts() {
     }).then(blob => blob.text())
     .then(text => {
         flaggedHosts = text.split("\n");
-        verb_log(`Fetched hosts file from ${listLocation}\nRead ${flaggedHosts.length} domains"`);
+        verb_log(`Fetched hosts file from ${LIST_LOCATION}\nRead ${flaggedHosts.length} domains"`);
         saveHosts();
     }).catch(err => {
         console.error(`Failed to get hosts (${err})`);
