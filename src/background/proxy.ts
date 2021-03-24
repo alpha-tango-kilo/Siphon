@@ -1,6 +1,7 @@
 import { browser, WebRequest } from "webextension-polyfill-ts";
 import { getDomain, getHostname, verb_log, FLAGGED_HOSTS, DATABASE, IActiveDomainSession, ActiveDomainSession, fileSizeString, CONNECTION_NAME } from "../lib";
 
+const START_TIME = Date.now();
 const LIST_LOCATION = "https://v.firebog.net/hosts/Easyprivacy.txt";
 let flaggedHosts: string[] = [];
 
@@ -60,21 +61,21 @@ let activeDomainSessions: Map<number, IActiveDomainSession> = new Map();
 
 /**
  * Listen for a connection being made from the pop-up
- * If it's the pop-up add a listener that tries to parse its messages as a number and then returns
- * the corresponding IActiveDomainSession or undefined
+ * If it's the pop-up add a listener that will send an up-to-date IProxyState
  */
 browser.runtime.onConnect.addListener(port => {
     if (port.name !== CONNECTION_NAME) return;
     port.onMessage.addListener((message, port) => {
-        // Assume they're requesting an ActiveDomainSession
         let tabID = parseInt(message);
+        let focussedSession = activeDomainSessions.get(tabID);
 
-        if (tabID === NaN) {
-            console.warn(`Received message from pop-up that couldn't be parsed to a number (${message})`);
-        } else {
-            port.postMessage(currentTabs.get(tabID));
-        }
-    })
+        port.postMessage({
+            startupTime: START_TIME,
+            // Change undefined to null
+            focussedSession: focussedSession ? focussedSession : null,
+            currentSessions: activeDomainSessions,
+        });
+    });
 });
 
 // Monitor tabs that change domains

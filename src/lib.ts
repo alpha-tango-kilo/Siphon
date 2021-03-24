@@ -70,10 +70,10 @@ class SiphonDatabase extends Dexie {
     /**
      * Gets a list of all the domain sessions between two dates, optionally filtered by domain
      */
-    private async allSessionsBetween(startTime: number, endTime: number, domain?: string): Promise<IDomainSession[]> {
+    async allSessionsBetween(startTime: number, endTime: number, domain?: string): Promise<IDomainSession[]> {
         return this.domainSessions
             .where("startTime")
-            .between(startTime, endTime)
+            .between(startTime, endTime, true, true)
             .filter(domainSession => domain ? domainSession.domain === domain : true)
             .filter(domainSession => domainSession.endTime <= endTime && domainSession.endTime > startTime)
             .toArray();
@@ -96,11 +96,15 @@ class SiphonDatabase extends Dexie {
     }
 
     async uniqueHostsConnectedToDuring(sessionUUID: string): Promise<Set<string>> {
-        let requestHosts = await this.trackerRequests
+        let trackerRequests = await this.trackerRequestsDuringSession(sessionUUID);
+        return new Set(trackerRequests.map(trackerRequest => trackerRequest.hostname));
+    }
+
+    async trackerRequestsDuringSession(sessionUUID: string): Promise<ITrackerRequest[]> {
+        return this.trackerRequests
             .where("sessionUUID")
             .equals(sessionUUID)
             .toArray();
-        return new Set(requestHosts.map(trackerRequest => trackerRequest.hostname));
     }
 }
 
@@ -136,6 +140,12 @@ export class ActiveDomainSession implements IActiveDomainSession {
 
 export function fileSizeString(bytes: number): string {
     return fileSize(bytes, { fullform: true, round: 1 });
+}
+
+export interface IProxyState {
+    readonly startupTime: number;
+    readonly focussedSession: IActiveDomainSession;
+    readonly currentSessions: Map<number, IActiveDomainSession>;
 }
 
 // CONSTANTS
