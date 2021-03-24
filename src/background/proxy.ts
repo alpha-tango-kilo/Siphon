@@ -25,13 +25,15 @@ let initFlaggedHosts = setInterval(() => {
 // This function is only called on flagged hosts
 // https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/webRequest/onCompleted#details
 async function recordRequest(requestDetails: WebRequest.OnCompletedDetailsType) {
-    if (requestDetails.fromCache) return;
+    // Sometimes Firefox will just report the tab ID as -1 for some reason (a.k.a. none), which really confuses everything
+    // Ignore these for now, probably should do some wait and then reverse look-up of active sesions
+    // TODO: ^
+    if (requestDetails.fromCache || requestDetails.tabId === browser.tabs.TAB_ID_NONE) return;
 
     const hostname = getHostname(requestDetails.url)!;
 
-    const activeDomainSession = currentTabs.get(requestDetails.tabId);
-    // TODO: Not sure if this will ever happen or not
-    // TODO: THIS HAPPENS, unsure how to reproduce
+    const activeDomainSession = activeDomainSessions.get(requestDetails.tabId);
+
     if (activeDomainSession === undefined) {
         console.error(`Couldn't find active domain session for tab ID ${requestDetails.tabId}, which made a request to ${hostname}`);
         return;
@@ -44,7 +46,7 @@ async function recordRequest(requestDetails: WebRequest.OnCompletedDetailsType) 
         hostname,
         bytesExchanged
     }).then(() => {
-        verb_log(`${activeDomainSession.domain} sent ${requestDetails.method} request to ${hostname}, total data sent/received ${fileSizeString(bytesExchanged)}`);
+        verb_log(`${activeDomainSession!.domain} sent ${requestDetails.method} request to ${hostname}, total data sent & received ${fileSizeString(bytesExchanged)}`);
     }).catch(err => {
         console.error(`Failed to save tracker request to database (${err})`);
     });
@@ -53,7 +55,8 @@ async function recordRequest(requestDetails: WebRequest.OnCompletedDetailsType) 
 // TAB WATCHING
 
 // TODO: continuation of sessions between shutdown & start-up
-let currentTabs: Map<number, IActiveDomainSession> = new Map();
+// Maps a tab ID to an IActiveDomainSession
+let activeDomainSessions: Map<number, IActiveDomainSession> = new Map();
 
 /**
  * Listen for a connection being made from the pop-up
@@ -81,13 +84,13 @@ browser.tabs.onUpdated.addListener(async (tabID, changeInfo) => {
     if (!changeInfo.url || tabID === browser.tabs.TAB_ID_NONE) return;
 
     const newDomain = getDomain(changeInfo.url);
-    const oldDomain = currentTabs.get(tabID)?.domain;
+    const oldDomain = activeDomainSessions.get(tabID)?.domain;
 
     // Update active domain session if domain has changed
     // Remove it if the new domain is undefined
     if (newDomain) {
         if (oldDomain !== newDomain) {
-            currentTabs.set(tabID, new ActiveDomainSession(newDomain));
+            activeDomainSessions.set(tabID, new ActiveDomainSession(newDomain));
             verb_log(`Updated domain for tab ${tabID} to ${newDomain} (was ${oldDomain})`);
         } else {
             verb_log(`Tab ${tabID} (${newDomain}) changed URL but stayed on the same domain`);
@@ -95,7 +98,7 @@ browser.tabs.onUpdated.addListener(async (tabID, changeInfo) => {
     } else {
         // Doesn't error on failure so always call
         saveRemoveDomainSession(tabID)
-            .then(() => verb_log(`Tab "${tabID} (${oldDomain}) changed to a non-web URI`));
+            .then(() => verb_log(`Tab ${tabID} (${oldDomain}) changed to a non-web URI`));
     }
 });
 
@@ -111,13 +114,13 @@ async function scanAllTabs() {
     await browser.tabs.query({}) // Get all tabs
         .then(tabs => {
             for (let tab of tabs) {
-                if (tab.url === undefined || tab.id === undefined || currentTabs.get(tab.id) !== undefined) continue;
+                if (tab.url === undefined || tab.id === undefined || activeDomainSessions.get(tab.id) !== undefined) continue;
 
                 let domain = getDomain(tab.url);
                 if (domain === null) continue;
 
                 verb_log(`Found existing tab on ${domain} (tab ${tab.id}), creating session`);
-                currentTabs.set(tab.id, new ActiveDomainSession(domain));
+                activeDomainSessions.set(tab.id, new ActiveDomainSession(domain));
             }
         });
     //verb_log("After scan (see below)");
@@ -129,7 +132,7 @@ async function scanAllTabs() {
  * removes this from currentTabs
  */
 async function saveRemoveDomainSession(tabID: number) {
-    let endedSession = currentTabs.get(tabID);
+    let endedSession = activeDomainSessions.get(tabID);
     if (endedSession) {
         await DATABASE.domainSessions.put({
             endTime: Date.now(),
@@ -141,7 +144,7 @@ async function saveRemoveDomainSession(tabID: number) {
             // TODO: remove any tracker requests with this UUID?
         });
     }
-    currentTabs.delete(tabID);
+    activeDomainSessions.delete(tabID);
 }
 
 // STORING AND LOADING DOMAINS
