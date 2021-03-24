@@ -1,5 +1,5 @@
 import { browser, Tabs } from "webextension-polyfill-ts";
-import { CONNECTION_NAME, DARK_MODE, DATABASE, fileSizeString, IActiveDomainSession, verb_log } from "../lib";
+import { CONNECTION_NAME, DARK_MODE, DATABASE, fileSizeString, IProxyState, verb_log } from "../lib";
 
 // INITIALISE REFERENCES & ATTRIBUTES
 
@@ -42,11 +42,11 @@ browser.webRequest.onCompleted.addListener(async requestDetails => {
 }, { urls: ["<all_urls>"] });
 
 /**
- * Messages coming from the background script should always be IActiveDomainSession | undefined,
+ * Messages coming from the background script should always be IProxyState,
  * which will have been requested by the pop-up calling requestActiveDomainSession
  * This is passed to updatePopUp to refresh the UI
  */
-backgroundScript.onMessage.addListener((message: IActiveDomainSession, _) => updatePopUp(message));
+backgroundScript.onMessage.addListener((message, _) => updatePopUp(message));
 
 // POP-UP THEMING
 
@@ -77,7 +77,7 @@ function loadTheme() {
         .then((data) => {
             let dark = data[DARK_MODE] !== undefined ? data[DARK_MODE] : true; // becomes true if undefined
             setDarkTheme(dark, false);
-            verb_log(`Dark theme setting loaded from browser storage ${dark}`);
+            verb_log(`Dark theme setting loaded from browser storage: ${dark}`);
         }).catch(err => {
             console.error(`Failed to access storage to check dark theme setting (${err})
                 This error shouldn't happen unless the manifest storage permission is set incorrectly`);
@@ -103,35 +103,67 @@ async function requestActiveDomainSession(tabID?: number) {
 }
 
 /**
- * Updates the information displayed in the pop-up to be contextual to to the current tab's domain
- * Falls back on a tab agnostic setup if there is no IActiveDomainSession for the tab
+ * Updates the information displayed in the pop-up
+ * If an proxyState's focussedSession isn't null, show information contexual to said session (i.e. the current tab)
+ * Otherwise, show statistics for the current browsing session
  */
-async function updatePopUp(session: IActiveDomainSession | undefined) {   
-    if (session === undefined) return; // TODO: return to a 'default' state that's tab agnostic
+async function updatePopUp(proxyState: IProxyState) {
+    function textGenerator(prefix: string, strings: ArrayLike<any>): string {
+        if (strings.length === 0)
+            return `${prefix} hasn't connected to any tracking hosts`;
+        else
+            return `${prefix} has connected to ${strings.length} tracking host${strings.length !== 1 ? "s" : ""}${strings.length > 3 ? ", including " : ": "}${formatUpToThree(strings)}`;
+    }
 
-    let bytesSent = await DATABASE.totalBytesSentDuringSession(session.sessionUUID);
-    let bytesSentString = fileSizeString(bytesSent);
-    
-    dataSentHeader.innerText = `Data sent while visiting ${session.domain}`;
-    dataSent.innerText = `While viewing ${session.domain}, ${bytesSentString} of your data has been sent to third parties known to track you`;
+    function formatUpToThree(strings: ArrayLike<any>): string {
+        switch (strings.length) {
+            case 0: return "";
+            case 1: return strings[0];
+            case 2: return `${strings[0]}, and ${strings[1]}`;
+            default: return `${strings[0]}, ${strings[1]}, and ${strings[2]}`;
+        }
+    }
 
-    let hostsConnectTo = await DATABASE.uniqueHostsConnectedToDuring(session.sessionUUID);
-    let iter = hostsConnectTo.values();
-    switch (hostsConnectTo.size) {
-        case 0:
-            trackersConnected.innerText = `${session.domain} hasn't connected to any tracking hosts yet`;
-            break;
-        case 1:
-            trackersConnected.innerText = `${session.domain} has connected to 1 tracking host: ${iter.next().value}`;
-            break;
-        case 2:
-            trackersConnected.innerText = `${session.domain} has connected to 2 tracking hosts: ${iter.next().value}, and ${iter.next().value}`;
-            break;
-        case 3:
-            trackersConnected.innerText = `${session.domain} has connected to 3 tracking hosts: ${iter.next().value}, ${iter.next().value}, and ${iter.next().value}`;
-            break;
-        default:
-            trackersConnected.innerText = `${session.domain} has connected to ${hostsConnectTo.size} tracking hosts, including ${iter.next().value}, ${iter.next().value}, and ${iter.next().value}`;
-            break;
+    if (!proxyState.focussedSession) {
+        // Generic information
+        const currentTime = Date.now();
+
+        let domainSessions = await DATABASE.allSessionsBetween(proxyState.startupTime, currentTime);
+
+        let oldSessionUUIDs = domainSessions.map(domainSession => domainSession.sessionUUID);
+        let currentSessionUUIDs = Array.from(proxyState.currentSessions.values())
+            .map(activeDomainSession => activeDomainSession.sessionUUID);
+        let allUUIDs = oldSessionUUIDs.concat(currentSessionUUIDs);
+
+        let trackerRequests = (await Promise.all( // 2. Await all
+                allUUIDs.map(uuid => DATABASE.trackerRequestsDuringSession(uuid)) // 1. Get all tracker requests during all sessions
+            )).reduce((acc, val) => acc.concat(val), []); // 3. Flatten 2D list 
+
+        let trackerHosts = trackerRequests.map(tr => tr.hostname)
+            // Duplicates filtering. Using a set would cause issues with formatUpToThree
+            // https://stackoverflow.com/a/14438954
+            .filter((val, index, arr) => arr.indexOf(val) === index);
+
+        let bytesSent = trackerRequests.reduce((acc, tr) => acc + tr.bytesExchanged, 0);
+        let bytesSentString = fileSizeString(bytesSent);
+
+        dataSentHeader.innerText = "Data sent during this browsing session";
+        dataSent.innerText = `While your browser has been open, ${bytesSentString} of your data has been sent & received from known tracking hosts`;
+
+        trackersConnected.innerText = textGenerator("Your browser", trackerHosts);
+    } else {
+        // There is an active session we can return contextual stats for
+        // Rename for brevity
+        const session = proxyState.focussedSession;
+        let bytesSent = await DATABASE.totalBytesSentDuringSession(session.sessionUUID);
+        let bytesSentString = fileSizeString(bytesSent);
+        
+        dataSentHeader.innerText = `Data sent while visiting ${session.domain}`;
+        dataSent.innerText = `While viewing ${session.domain}, ${bytesSentString} of your data has been sent & received from known tracking hosts`;
+
+        let hostsConnectTo = await DATABASE.uniqueHostsConnectedToDuring(session.sessionUUID);
+        let hostsList = Array.from(hostsConnectTo.values());
+        
+        trackersConnected.innerText = textGenerator(session.domain, hostsList);
     }
 }
