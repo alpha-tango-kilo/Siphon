@@ -3,9 +3,13 @@ import { CONNECTION_NAME, DARK_MODE, DATABASE, fileSizeString, IProxyState, verb
 
 // INITIALISE REFERENCES & ATTRIBUTES
 
-const dataSentHeader = document.getElementById("data-sent-header")!;
-const dataSent = document.getElementById("data-sent")!;
-const trackersConnected = document.getElementById("trackers-connected")!;
+const dataSentHeader = document.getElementById("data-sent-header")!; // h2
+const dataSent = document.getElementById("data-sent")!; // p
+const trackersConnected = document.getElementById("trackers-connected")!; // p
+const topTrackersHeader = document.getElementById("top-trackers-header")!; // h2
+const topTrackers = document.getElementById("top-trackers")!; // ol
+const websiteRankHeader = document.getElementById("website-rank-header")!; // h2
+const websiteRank = document.getElementById("website-rank")!; // ol
 
 const root = document.getElementById("root")!; // Used to apply dark theme
 const darkThemeButton = document.getElementById("dark-toggle")!;
@@ -26,6 +30,7 @@ const backgroundScript = browser.runtime.connect(undefined, { name: CONNECTION_N
 
 requestActiveDomainSession();
 loadTheme();
+verb_log("Pop-up opened!");
 
 // LISTENERS
 
@@ -108,7 +113,7 @@ async function requestActiveDomainSession(tabID?: number) {
  * Otherwise, show statistics for the current browsing session
  */
 async function updatePopUp(proxyState: IProxyState) {
-    function textGenerator(prefix: string, strings: ArrayLike<any>): string {
+    function formatDataSentString(prefix: string, strings: ArrayLike<any>): string {
         if (strings.length === 0)
             return `${prefix} hasn't connected to any tracking hosts`;
         else
@@ -122,6 +127,36 @@ async function updatePopUp(proxyState: IProxyState) {
             case 2: return `${strings[0]}, and ${strings[1]}`;
             default: return `${strings[0]}, ${strings[1]}, and ${strings[2]}`;
         }
+    }
+
+    interface TrackerTotal {
+        readonly hostname: string;
+        readonly totalBytesExchanged: number;
+    }
+
+    /**
+     * Formats bulleted list for top trackers in pop-up
+     * Will revert to a not enough info message if need be
+     * `trackers` is assumed to be sorted
+     */
+    function formatTopTrackers(trackers: TrackerTotal[]) {
+        let newNode: HTMLElement;
+        if (trackers.length > 0) {
+            newNode = document.createElement("ol");
+            // Expected case
+            newNode.outerHTML = `<ol id="top-trackers" class="flex-grow"></ol>`;
+            // Repeat up to 3 times, as data allows
+            for (let i = 0; i < Math.min(trackers.length, 3); i++) {
+                newNode.innerHTML += `<li><span class="fake-url">${trackers[i].hostname}</span> (${fileSizeString(trackers[i].totalBytesExchanged, true)})`;
+            }
+        } else {
+            // Edge case: not enough info to provide statistic
+            newNode = document.createElement("p");
+            newNode.innerHTML = "Not enough data to produce anything here, sorry!";
+        }
+        newNode.classList.add("flex-grow");
+        newNode.id = "top-trackers";
+        topTrackers.parentNode!.replaceChild(newNode, topTrackers);
     }
 
     if (!proxyState.focussedSession) {
@@ -150,7 +185,7 @@ async function updatePopUp(proxyState: IProxyState) {
         dataSentHeader.innerText = "Data sent during this browsing session";
         dataSent.innerText = `While your browser has been open, ${bytesSentString} of your data has been sent & received from known tracking hosts`;
 
-        trackersConnected.innerText = textGenerator("Your browser", trackerHosts);
+        trackersConnected.innerText = formatDataSentString("Your browser", trackerHosts);
     } else {
         // There is an active session we can return contextual stats for
         // Rename for brevity
@@ -164,6 +199,26 @@ async function updatePopUp(proxyState: IProxyState) {
         let hostsConnectTo = await DATABASE.uniqueHostsConnectedToDuring(session.sessionUUID);
         let hostsList = Array.from(hostsConnectTo.values());
         
-        trackersConnected.innerText = textGenerator(session.domain, hostsList);
+        trackersConnected.innerText = formatDataSentString(session.domain, hostsList);
+
+        // TODO: this must be optimisable
+        let allTrackerRequestsOnDomain = await DATABASE.allRequestsTo(session.domain, [session.sessionUUID]);
+        let trackerTotalMap = new Map<string, number>();
+        allTrackerRequestsOnDomain.
+            forEach(tr => {
+                let current = trackerTotalMap.get(tr.hostname);
+                const prev = current ? current : 0;
+                trackerTotalMap.set(tr.hostname, prev + tr.bytesExchanged);
+            });
+        let trackerTotals: TrackerTotal[] = [];
+        trackerTotalMap.forEach((v, k) => trackerTotals.push({
+            hostname: k,
+            totalBytesExchanged: v,
+        }));
+        trackerTotals.sort((a, b) => a.totalBytesExchanged - b.totalBytesExchanged);
+        console.log(trackerTotals);
+        // TODO: better detect when topTrackers needs re-getting
+        // The reference dies after formatTopTrackers due to how it's replaced
+        if (topTrackers) formatTopTrackers(trackerTotals);
     }
 }

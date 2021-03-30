@@ -155,8 +155,8 @@ export class ActiveDomainSession implements IActiveDomainSession {
 
 // MISC
 
-export function fileSizeString(bytes: number): string {
-    return fileSize(bytes, { fullform: true, round: 1 });
+export function fileSizeString(bytes: number, short?: boolean): string {
+    return fileSize(bytes, { fullform: !short, round: 1 });
 }
 
 export interface IProxyState {
