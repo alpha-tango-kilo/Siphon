@@ -24,33 +24,35 @@
         <p id="trackers-connected">example.com has connected to 6 different tracking hosts, including ...</p>
     </div>
 
-    <div class="flex space-x-2">
-        <div>
-            <h2>Top trackers for this site (all time)</h2>
-            <ol>
-                <li>Facebook</li>
-                <li>Instagram</li>
-                <li>Google</li>
+    <div>
+        <h2 id="top-trackers-header">Top trackers for this site (all time)</h2>
+        <div class="flex">
+            <ol id="top-trackers" class="flex-grow">
+                <li><span class="fake-url">facebook.com</span> (4.0 GB)</li>
+                <li><span class="fake-url">graph.facebook.com</span> (1.3 GB)</li>
+                <li><span class="fake-url">e.reddit.com</span> (440 MB)</li>
             </ol>
+
+            <!-- Link to graphs page is necessary for Parcel to pull it in but is overridden in popup.ts -->
+            <a id="trackers-graph-icon" target="_blank" href="../graphs/graphs.html">
+                <img src="../icons/graph.svg" class="graph-icon">
+            </a>
         </div>
-        <!-- Link to graphs page is necessary for Parcel to pull it in but is overridden in popup.js -->
-        <a id="trackers-graph-icon" target="_blank" href="../graphs/graphs.html">
-            <img src="../icons/graph.svg" class="graph-icon">
-        </a>
     </div>
 
-    <div class="flex space-x-2">
-        <a id="website-rank-icon" target="_blank">
-            <img src="../icons/graph.svg" class="graph-icon">
-        </a>
-        <div>
-            <h2>Website's rank in data uploaded</h2>
-
-            <ol>
+    <div>
+        <h2 id="website-rank-header">Website's rank in data uploaded</h2>
+        
+        <div class="flex">
+            <ol id="website-rank" class="order-2 flex-grow">
                 <li><span class="fake-url">example.org</span></li>
                 <li><span class="fake-url">current-site.com</span></li>
                 <li><span class="fake-url">example.com</span></li>
             </ol>
+
+            <a id="website-rank-icon" target="_blank">
+                <img src="../icons/graph.svg" class="graph-icon order-1 pr-4">
+            </a>
         </div>
     </div>
 
