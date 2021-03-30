@@ -106,6 +106,21 @@ class SiphonDatabase extends Dexie {
             .equals(sessionUUID)
             .toArray();
     }
+
+    async allRequestsTo(domain: string): Promise<ITrackerRequest[]> {
+        let sessions = await this.domainSessions
+            .where("domain")
+            .equalsIgnoreCase(domain)
+            .toArray();
+        let requestPromises = sessions.map(async session => {
+            return this.trackerRequests
+                .where("sessionUUID")
+                .equals(session.sessionUUID)
+                .toArray();
+        });
+        let trackerRequests2D = await Promise.all(requestPromises);
+        return trackerRequests2D.reduce((acc, ls) => acc.concat(ls), []);
+    }
 }
 
 interface ITrackerRequest {
