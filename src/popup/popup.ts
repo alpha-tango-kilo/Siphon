@@ -1,5 +1,5 @@
 import { browser, Tabs } from "webextension-polyfill-ts";
-import { CONNECTION_NAME, DARK_MODE, DATABASE, fileSizeString, IProxyState, verb_log } from "../lib";
+import { CONNECTION_NAME, DARK_MODE, DATABASE, fileSizeString, IDomainTotal, INeighbouringDomainTotals, IProxyState, ITrackerTotal, verb_log } from "../lib";
 
 // INITIALISE REFERENCES & ATTRIBUTES
 
@@ -7,9 +7,9 @@ const dataSentHeader = document.getElementById("data-sent-header")!; // h2
 const dataSent = document.getElementById("data-sent")!; // p
 const trackersConnected = document.getElementById("trackers-connected")!; // p
 const topTrackersHeader = document.getElementById("top-trackers-header")!; // h2
-const topTrackers = document.getElementById("top-trackers")!; // ol
+// topTrackers is fetched lazily, you're looking in the wrong place
 const websiteRankHeader = document.getElementById("website-rank-header")!; // h2
-const websiteRank = document.getElementById("website-rank")!; // ol
+// websiteRank is fetched lazily, you're looking in the wrong place
 
 const root = document.getElementById("root")!; // Used to apply dark theme
 const darkThemeButton = document.getElementById("dark-toggle")!;
@@ -129,25 +129,19 @@ async function updatePopUp(proxyState: IProxyState) {
         }
     }
 
-    interface TrackerTotal {
-        readonly hostname: string;
-        readonly totalBytesExchanged: number;
-    }
-
     /**
      * Formats bulleted list for top trackers in pop-up
      * Will revert to a not enough info message if need be
      * `trackers` is assumed to be sorted
      */
-    function formatTopTrackers(trackers: TrackerTotal[]) {
+    function formatTopTrackers(trackers: ITrackerTotal[]) {
         let newNode: HTMLElement;
         if (trackers.length > 0) {
-            newNode = document.createElement("ol");
             // Expected case
-            newNode.outerHTML = `<ol id="top-trackers" class="flex-grow"></ol>`;
+            newNode = document.createElement("ol");
             // Repeat up to 3 times, as data allows
             for (let i = 0; i < Math.min(trackers.length, 3); i++) {
-                newNode.innerHTML += `<li><span class="fake-url">${trackers[i].hostname}</span> (${fileSizeString(trackers[i].totalBytesExchanged, true)})`;
+                newNode.innerHTML += `<li><span class="fake-url">${trackers[i].hostname}</span> (${fileSizeString(trackers[i].bytesExchanged, true)})`;
             }
         } else {
             // Edge case: not enough info to provide statistic
@@ -156,7 +150,46 @@ async function updatePopUp(proxyState: IProxyState) {
         }
         newNode.classList.add("flex-grow");
         newNode.id = "top-trackers";
+        const topTrackers = document.getElementById("top-trackers")!;
         topTrackers.parentNode!.replaceChild(newNode, topTrackers);
+    }
+
+    // Should only be called by formatTopWebsiteRanks or formatNeighbouringWebsiteRanks
+    function formatWebsiteRanks(domains: IDomainTotal[], edgeCaseMessage: string, start?: number) {
+        let newNode: HTMLElement;
+        if (domains.length > 0) {
+            // Expected case
+            newNode = document.createElement("ol");
+            if (start) newNode.setAttribute("start", start.toString());
+            for (let dt of domains) {
+                newNode.innerHTML += `<li><span class="fake-url">${dt.domain}</span> (${fileSizeString(dt.bytesExchanged, true)})</li>`;
+            }
+        } else {
+            // Edge case
+            newNode = document.createElement("p");
+            newNode.innerText = edgeCaseMessage;
+        }
+        newNode.id = "website-rank";
+        newNode.classList.add("order-2", "flex-grow");
+        const websiteRank = document.getElementById("website-rank")!;
+        websiteRank.parentNode!.replaceChild(newNode, websiteRank);
+    }
+
+    function formatTopWebsiteRanks(domains: IDomainTotal[]) {
+        // Edge case is when user has never had a tracker request logged
+        formatWebsiteRanks(
+            domains,
+            "No recorded tracker requests on file! Consider yourself lucky to be seeing this message 🎉",
+        );
+    }
+
+    function formatNeighbouringWebsiteRanks(ndts: INeighbouringDomainTotals) {
+        // Edge case is when no tracker requests from this domain yet
+        formatWebsiteRanks(
+            ndts.domainTotals,
+            "This domain has never sent a tracking request, call it a winner! 🎉",
+            ndts.startRank,
+        );
     }
 
     if (!proxyState.focussedSession) {
@@ -179,46 +212,48 @@ async function updatePopUp(proxyState: IProxyState) {
             // https://stackoverflow.com/a/14438954
             .filter((val, index, arr) => arr.indexOf(val) === index);
 
+        // Bytes sent
         let bytesSent = trackerRequests.reduce((acc, tr) => acc + tr.bytesExchanged, 0);
         let bytesSentString = fileSizeString(bytesSent);
 
         dataSentHeader.innerText = "Data sent during this browsing session";
         dataSent.innerText = `While your browser has been open, ${bytesSentString} of your data has been sent & received from known tracking hosts`;
 
-        trackersConnected.innerText = formatDataSentString("Your browser", trackerHosts);
+        // Connected to
+        trackersConnected.textContent = formatDataSentString("Your browser", trackerHosts);
+
+        // Top trackers
+        topTrackersHeader.textContent = "Top trackers while your browser has been open";
+        await DATABASE.topThreeTrackers().then(formatTopTrackers);
+
+        // Top websites
+        websiteRankHeader.textContent = "Top data farming websites";
+        let topDomains = await DATABASE.topThreeDomains();
+        formatTopWebsiteRanks(topDomains);
     } else {
         // There is an active session we can return contextual stats for
         // Rename for brevity
         const session = proxyState.focussedSession;
+
+        // Bytes sent
         let bytesSent = await DATABASE.totalBytesSentDuringSession(session.sessionUUID);
         let bytesSentString = fileSizeString(bytesSent);
         
         dataSentHeader.innerText = `Data sent while visiting ${session.domain}`;
         dataSent.innerText = `While viewing ${session.domain}, ${bytesSentString} of your data has been sent & received from known tracking hosts`;
 
+        // Connected to
         let hostsConnectTo = await DATABASE.uniqueHostsConnectedToDuring(session.sessionUUID);
         let hostsList = Array.from(hostsConnectTo.values());
         
-        trackersConnected.innerText = formatDataSentString(session.domain, hostsList);
+        trackersConnected.textContent = formatDataSentString(session.domain, hostsList);
 
-        // TODO: this must be optimisable
-        let allTrackerRequestsOnDomain = await DATABASE.allRequestsTo(session.domain, [session.sessionUUID]);
-        let trackerTotalMap = new Map<string, number>();
-        allTrackerRequestsOnDomain.
-            forEach(tr => {
-                let current = trackerTotalMap.get(tr.hostname);
-                const prev = current ? current : 0;
-                trackerTotalMap.set(tr.hostname, prev + tr.bytesExchanged);
-            });
-        let trackerTotals: TrackerTotal[] = [];
-        trackerTotalMap.forEach((v, k) => trackerTotals.push({
-            hostname: k,
-            totalBytesExchanged: v,
-        }));
-        trackerTotals.sort((a, b) => a.totalBytesExchanged - b.totalBytesExchanged);
-        console.log(trackerTotals);
-        // TODO: better detect when topTrackers needs re-getting
-        // The reference dies after formatTopTrackers due to how it's replaced
-        if (topTrackers) formatTopTrackers(trackerTotals);
+        // Top trackers on domain
+        topTrackersHeader.textContent = "Top trackers for this site (all time)";
+        await DATABASE.topThreeTrackersOn(session.domain).then(formatTopTrackers);
+
+        // Website relative rank
+        websiteRankHeader.textContent = "Website's rank in data uploaded";
+        formatNeighbouringWebsiteRanks(await DATABASE.getNeighbouringRanks(session.domain));
     }
 }

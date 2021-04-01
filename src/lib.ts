@@ -121,21 +121,84 @@ class SiphonDatabase extends Dexie {
             .toArray();
     }
 
-    async allRequestsTo(domain: string, extraUUIDs?: string[]): Promise<ITrackerRequest[]> {
-        let sessions = await this.domainSessions
-            .where("domain")
-            .equalsIgnoreCase(domain)
-            .toArray();
-        let uuids = sessions.map(session => session.sessionUUID);
-        uuids = extraUUIDs ? uuids.concat(extraUUIDs) : uuids; // Add extra UUIDs if present
-        let requestPromises = uuids.map(async uuid => {
-            return this.trackerRequests
-                .where("sessionUUID")
-                .equals(uuid)
+    // TODO: make sync
+    private async getTopSomethingByBytesExchanged<T>(table: Dexie.Table<T>, number?: number): Promise<T[]> {
+        if (table.schema.idxByName["bytesExchanged"] === undefined) // TODO: check this works as intended
+            return Promise.reject("Table given to getTopSomething doesn't have bytesExchanged indexed");
+        else
+            return table
+                .orderBy("bytesExchanged")
+                .reverse()
+                .limit(number ?? 3) // 3 by default
                 .toArray();
+    }
+
+    /**
+     * Returns the top three trackers by data uploaded from this browsing session
+     * i.e. from when the browser was opened until present
+     */
+    topThreeTrackers(): Promise<ITrackerTotal[]> {
+        return this.getTopSomethingByBytesExchanged(this.trackerTotalsVolatile);
+    }
+
+    async topThreeTrackersOn(domain: string): Promise<ITrackerTotal[]> {
+        let domainTrackerTotals = await this.domainTrackerTotals
+            .orderBy("bytesExchanged")
+            .reverse()
+            .filter(dtt => dtt.domain === domain)
+            .limit(3)
+            .toArray();
+        // Surrounded in brackets as otherwise {} is taken as a code block
+        return domainTrackerTotals.map(dtt => ({ hostname: dtt.trackerHostname, ...dtt }));
+    }
+
+    topThreeDomains(): Promise<IDomainTotal[]> {
+        return this.getTopSomethingByBytesExchanged(this.domainTotals);
+    }
+
+    async getNeighbouringRanks(domain: string): Promise<INeighbouringDomainTotals> {
+        const targetDT = await this.domainTotals.get(domain);
+
+        // Edge case: no tracker requests have been made to the domain
+        if (targetDT === undefined) return { domainTotals: [], startRank: 1 };
+
+        let pos = await this.domainTotals
+            .orderBy("bytesExchanged")
+            .reverse()
+            .until(dt => dt.domain === domain) // target item not included, so count = index of matching
+            .count();
+
+        let neighbours = await this.domainTotals
+            .orderBy("bytesExchanged")
+            .reverse()
+            .offset(pos - 1) // to get one previous to target
+            .limit(3)
+            .toArray();
+
+        // Edge case: domain is bottom of the list, and so the list only comes in with 2 items
+        // In this case, order domainTotals by bytesExchanged *ascending*, take 3, and reverse
+        // This way, the list is always 3 long if possible
+        // This will be useless in the case that there are less than 3 domain totals
+        if (neighbours.length === 2 && neighbours[1].domain === domain) {
+            neighbours = await this.domainTotals
+                .orderBy("bytesExchanged")
+                .limit(3)
+                //.reverse() // see below
+                .toArray();
+            neighbours.reverse(); // Reversal has to be done separately or else this doesn't work as intended
+        }
+
+        // neighbours.indexOf(targetDT) always gets -1 for some reason, so we do this
+        // Still constant time (over a max of 3 items), so we'll live
+        let indexOfTarget: number;
+        neighbours.forEach((dt, index, _) => {
+            if (dt.domain === domain) indexOfTarget = index;
         });
-        let trackerRequests2D = await Promise.all(requestPromises);
-        return trackerRequests2D.reduce((acc, ls) => acc.concat(ls), []);
+
+        return {
+            domainTotals: neighbours,
+            startRank: pos + 1 - indexOfTarget!, // Can assert as the forEach is guaranteed to find it
+        };
     }
 }
 
@@ -165,6 +228,27 @@ export class ActiveDomainSession implements IActiveDomainSession {
         this.startTime = Date.now();
         this.sessionUUID = uuid(this.domain + this.startTime, SIPHON_NAMESPACE);
     }
+}
+
+interface IDomainTrackerTotal {
+    readonly domain: string;
+    readonly trackerHostname: string;
+    bytesExchanged: number;
+}
+
+export interface IDomainTotal {
+    readonly domain: string;
+    bytesExchanged: number;
+}
+
+export interface ITrackerTotal {
+    readonly hostname: string;
+    bytesExchanged: number;
+}
+
+export interface INeighbouringDomainTotals {
+    readonly domainTotals: IDomainTotal[]; // length is always 3 if there is sufficient data
+    readonly startRank: number; // the position of the first element of domainTotals
 }
 
 // MISC
