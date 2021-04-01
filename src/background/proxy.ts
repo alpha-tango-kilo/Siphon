@@ -42,16 +42,84 @@ async function recordRequest(requestDetails: WebRequest.OnCompletedDetailsType) 
 
     const bytesExchanged = requestDetails.requestSize + requestDetails.responseSize;
 
-    return DATABASE.trackerRequests.put({
+    if (bytesExchanged === 0) return;
+
+    return DATABASE.transaction("rw", // need to read & write the DB
+        [ // Tables to lock
+            DATABASE.trackerRequests,
+            DATABASE.domainTrackerTotals,
+            DATABASE.domainTotals,
+            DATABASE.trackerTotalsVolatile,
+        ],
+        async () => { // Transaction to do
+            // Tracker request
+            await DATABASE.trackerRequests.put({
         sessionUUID: activeDomainSession.sessionUUID,
         hostname,
-        bytesExchanged
+                bytesExchanged,
+            });
+            verb_log("Updated tracker requests")
+
+            // Domain tracker total
+            //verb_log(`Requesting "[${activeDomainSession.domain},${hostname}]" from domainTrackerTotals`);
+            let domainTrackerTotal = await DATABASE.domainTrackerTotals.get([activeDomainSession.domain, hostname]);
+            //console.log(domainTrackerTotal);
+            if (domainTrackerTotal) {
+                domainTrackerTotal.bytesExchanged += bytesExchanged;
+                //verb_log("Updating domain tracker total");
+            } else {
+                domainTrackerTotal = {
+                    domain: activeDomainSession.domain,
+                    trackerHostname: hostname,
+                    bytesExchanged,
+                };
+                //verb_log("Creating new domain tracker total");
+            }
+            await DATABASE.domainTrackerTotals.put(domainTrackerTotal);
+
+            // Domain total
+            //verb_log(`Requesting "${activeDomainSession.domain}" from domainTotals`);
+            let domainTotal = await DATABASE.domainTotals.get(activeDomainSession.domain);
+            //console.log(domainTotal);
+            if (domainTotal) {
+                domainTotal.bytesExchanged += bytesExchanged;
+                //verb_log("Updating domain total");
+            } else {
+                domainTotal = {
+                    domain: activeDomainSession.domain,
+                    bytesExchanged,
+                };
+                //verb_log("Creating new domain total");
+            }
+            await DATABASE.domainTotals.put(domainTotal);
+
+            // Tracker total
+            //verb_log(`Requesting "${hostname}" from trackerTotalsVolatile`);
+            let trackerTotal = await DATABASE.trackerTotalsVolatile.get(hostname);
+            //console.log(trackerTotal);
+            if (trackerTotal) {
+                trackerTotal.bytesExchanged += bytesExchanged;
+                //verb_log("Updating tracker total");
+            } else {
+                trackerTotal = {
+                    hostname,
+                    bytesExchanged,
+                };
+                //verb_log("Creating new tracker total");
+            }
+            await DATABASE.trackerTotalsVolatile.put(trackerTotal);
     }).then(() => {
-        verb_log(`${activeDomainSession!.domain} sent ${requestDetails.method} request to ${hostname}, total data sent & received ${fileSizeString(bytesExchanged)}`);
+            verb_log(`${activeDomainSession!.domain} sent ${requestDetails.method} request to ${hostname}, total data sent & received ${fileSizeString(bytesExchanged)}, database transaction committed`);
     }).catch(err => {
-        console.error(`Failed to save tracker request to database (${err})`);
+            console.error(`Failed to commit transaction to database (${err})`);
     });
 }
+
+
+browser.runtime.onStartup.addListener(async () => DATABASE.clearTrackerTotals()
+    .then(() => verb_log("Tracker totals table cleared"))
+    .catch(err => console.error(`Failed to clear tracker totals table (${err})`))
+);
 
 // TAB WATCHING
 
@@ -190,7 +258,7 @@ function updateHosts() {
     }).then(blob => blob.text())
     .then(text => {
         flaggedHosts = text.split("\n");
-        verb_log(`Fetched hosts file from ${LIST_LOCATION}\nRead ${flaggedHosts.length} domains"`);
+        verb_log(`Fetched hosts file from ${LIST_LOCATION}\nRead ${flaggedHosts.length} domains`);
         saveHosts();
     }).catch(err => {
         console.error(`Failed to get hosts (${err})`);
