@@ -48,19 +48,33 @@ export function verb_err(msg: string) {
 // DATABASE
 
 class SiphonDatabase extends Dexie {
-    trackerRequests: Dexie.Table<ITrackerRequest>;
-    domainSessions:  Dexie.Table<IDomainSession, string>;
+    trackerRequests:       Dexie.Table<ITrackerRequest>;
+    domainSessions:        Dexie.Table<IDomainSession, string>;
+    domainTrackerTotals:   Dexie.Table<IDomainTrackerTotal, string>;
+    domainTotals:          Dexie.Table<IDomainTotal, string>;
+    // Referred to as volatile because it clears when the browser is opened
+    trackerTotalsVolatile: Dexie.Table<ITrackerTotal, string>;
 
     constructor() {
         super("SiphonDatabase");
         this.version(1).stores({
             // Include only indexed columns
             trackerRequests: "++, hostname, sessionUUID", // Auto-incremented hidden primary key
-            domainSessions: "sessionUUID, domain, startTime, endTime" // sessionUUID as primary key
+            domainSessions: "sessionUUID, domain, startTime, endTime", // sessionUUID as primary key
+            domainTrackerTotals: "[domain+trackerHostname], bytesExchanged", // compound primary key with domain & tracker hostname
+            domainTotals: "domain, bytesExchanged", // domain as primary key
+            trackerTotalsVolatile: "hostname, bytesExchanged", // hostname as primary key
         });
 
         this.trackerRequests = this.table("trackerRequests");
         this.domainSessions = this.table("domainSessions");
+        this.domainTrackerTotals = this.table("domainTrackerTotals");
+        this.domainTotals = this.table("domainTotals");
+        this.trackerTotalsVolatile = this.table("trackerTotalsVolatile");
+    }
+
+    async clearTrackerTotals(): Promise<void> {
+        return this.trackerTotalsVolatile.clear();
     }
 
     async totalBytesSentToTracker(hostname: string): Promise<number> {
