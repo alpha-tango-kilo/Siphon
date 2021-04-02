@@ -141,12 +141,12 @@ async function updatePopUp(proxyState: IProxyState) {
             newNode = document.createElement("ol");
             // Repeat up to 3 times, as data allows
             for (let i = 0; i < Math.min(trackers.length, 3); i++) {
-                newNode.innerHTML += `<li><span class="fake-url">${trackers[i].hostname}</span> (${fileSizeString(trackers[i].bytesExchanged, true)})`;
+                newNode.innerHTML += `<li><span class="fake-url">${trackers[i].hostname}</span> (${fileSizeString(trackers[i].bytesExchanged, true)})</li>`;
             }
         } else {
             // Edge case: not enough info to provide statistic
             newNode = document.createElement("p");
-            newNode.innerHTML = "Not enough data to produce anything here, sorry!";
+            newNode.textContent = "Not enough data to produce anything here, sorry!";
         }
         newNode.classList.add("flex-grow");
         newNode.id = "top-trackers";
