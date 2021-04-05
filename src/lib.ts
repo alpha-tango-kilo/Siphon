@@ -121,8 +121,7 @@ class SiphonDatabase extends Dexie {
             .toArray();
     }
 
-    // TODO: make sync
-    private async getTopSomethingByBytesExchanged<T>(table: Dexie.Table<T>, number?: number): Promise<T[]> {
+    private getTopSomethingByBytesExchanged<T>(table: Dexie.Table<T>, number?: number): Promise<T[]> {
         if (table.schema.idxByName["bytesExchanged"] === undefined) // TODO: check this works as intended
             return Promise.reject("Table given to getTopSomething doesn't have bytesExchanged indexed");
         else
