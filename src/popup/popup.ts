@@ -1,5 +1,5 @@
 import { browser, Tabs } from "webextension-polyfill-ts";
-import { CONNECTION_NAME, DARK_MODE, DATABASE, fileSizeString, IDomainTotal, INeighbouringDomainTotals, IProxyState, ITrackerTotal, verb_log } from "../lib";
+import { CONNECTION_NAME, DARK_MODE, DATABASE, fileSizeString, getDomain, IDomainTotal, INeighbouringDomainTotals, IProxyState, ITrackerTotal, verb_log } from "../lib";
 
 // INITIALISE REFERENCES & ATTRIBUTES
 
@@ -15,12 +15,9 @@ const root = document.getElementById("root")!; // Used to apply dark theme
 const darkThemeButton = document.getElementById("dark-toggle")!;
 darkThemeButton.addEventListener("click", toggleDarkTheme);
 
-// These have to be added programmatically or Parcel freaks out
+// The hrefs have to be added programmatically for the graph icons or Parcel freaks out
 const trackersGraphIcon = document.getElementById("trackers-graph-icon")!;
-trackersGraphIcon.setAttribute("href", "../graphs/graphs.html?trackers");
-
 const websiteRankIcon = document.getElementById("website-rank-icon")!;
-websiteRankIcon.setAttribute("href", "../graphs/graphs.html?rank");
 
 // undefined will cause the connection to be made to the extension's own background script
 // https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/runtime/connect
@@ -28,6 +25,8 @@ const backgroundScript = browser.runtime.connect(undefined, { name: CONNECTION_N
 
 // INITIALISATION FUNCTIONS
 
+updateTrackerGraphIconHref();
+websiteRankIcon.setAttribute("href", "../graphs/graphs.html?website-rank");
 requestActiveDomainSession();
 loadTheme();
 verb_log("Pop-up opened!");
@@ -35,6 +34,7 @@ verb_log("Pop-up opened!");
 // LISTENERS
 
 browser.tabs.onActivated.addListener(_ => requestActiveDomainSession());
+browser.tabs.onActivated.addListener(_ => updateTrackerGraphIconHref());
 
 // Update UI if request completes while extension is open
 // TODO: don't do anything if no data the user is seeing will have changed?
@@ -88,6 +88,20 @@ function loadTheme() {
                 This error shouldn't happen unless the manifest storage permission is set incorrectly`);
             setDarkTheme(true);
         });
+}
+
+/**
+ * Updates the query string in the URL the graph icon for the tracker list points to
+ * to the domain of the currently focussed tab, in order to help generate the right
+ * graph when the icon is clicked and the graphs page opens
+ */
+async function updateTrackerGraphIconHref(): Promise<void> {
+    let currentDomain = await getActiveTab()
+        .then(tab => getDomain(tab.url!)); // Assertion is safe as we know we have permission to access this
+    let href = `../graphs/graphs.html?top-trackers${currentDomain ? `=${ currentDomain}` : ""}`;
+
+    trackersGraphIcon.setAttribute("href", href);
+    verb_log("Trackers graph icon href updated");
 }
 
 // POP-UP INFORMATION
