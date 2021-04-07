@@ -26,7 +26,7 @@
     "type": "git"
   },
   "author": "alpha-tango-kilo",
-  "license": "MIT",
+  "license": "GPL-3.0-only",
   "dependencies": {
     "@types/psl": "^1.1.0",
     "@types/uuid": "^8.3.0",
