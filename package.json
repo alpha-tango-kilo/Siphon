@@ -5,7 +5,6 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "tsc": "tsc",
-    "graphs": "parcel src/graphs/graphs.html",
     "dev": "parcel src/manifest.json --host localhost --target dev",
     "build": "rm -rf build/** && parcel build src/manifest.json --target prod",
     "ff-dev": "web-ext run -s ./dist --pref devtools.toolbox.splitconsoleEnabled=true --start-url about:debugging#/runtime/this-firefox",
@@ -32,7 +31,7 @@
     "@types/psl": "^1.1.0",
     "@types/uuid": "^8.3.0",
     "autoprefixer": "^10.2.5",
-    "chart.js": "^2.9.4",
+    "chart.js": "^3.0.2",
     "dexie": "^3.0.3",
     "filesize": "^6.1.0",
     "postcss": "^8.2.9",
