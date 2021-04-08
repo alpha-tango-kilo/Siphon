@@ -1,5 +1,5 @@
 import { Chart } from "chart.js";
-import { DATABASE, verb_log } from "../lib";
+import { DATABASE, fileSizeString, verb_log } from "../lib";
 
 const graph = document.getElementById("chart")! as HTMLCanvasElement;
 const params = new URLSearchParams(new URL(document.URL).search);
@@ -36,6 +36,21 @@ async function createWebsiteRankChart(canvas: HTMLCanvasElement) {
                     display: true,
                     text: "Top websites you've visited by tracking data exchanged",
                 },
+                legend: {
+                    display: false,
+                },
+                tooltip: {
+                    callbacks: {
+                        title: _ => [],
+                        label: tooltip => {
+                            return tooltip.label;
+                        },
+                        footer: tooltips => {
+                            // Gets the number of bytes and formats it nicely
+                            return tooltips.map(tip => fileSizeString(tip.dataset.data[tip.dataIndex] as number));
+                        },
+                    },
+                }
             },
             scales: {
                 x: {
@@ -84,20 +99,31 @@ async function createTopTrackersChart(canvas: HTMLCanvasElement, domain: string 
         data.push(tt.bytesExchanged);
     }));
     
-    // TODO: make the tooltips nicer
     new Chart(canvas, {
         type: "doughnut",
         data: {
             labels,
             datasets: [{ data }],
         },
-        /* TODO: make chart title show up
-        plugins: {
-            title: {
-                display: true,
-                text: chartTitle,
-            },
-        },*/
+        options: {
+            plugins: {
+                title: {
+                    display: true,
+                    text: chartTitle,
+                },
+                tooltip: {
+                    callbacks: {
+                        label: tooltip => {
+                            return tooltip.label;
+                        },
+                        footer: tooltips => {
+                            // Gets the number of bytes and formats it nicely
+                            return tooltips.map(tip => fileSizeString(tip.dataset.data[tip.dataIndex] as number));
+                        },
+                    },
+                }
+            }
+        }
     });
 }
 
@@ -129,9 +155,9 @@ Chart.defaults.font = {
     lineHeight: 1.2,
     weight: "400",
 };
-
 Chart.defaults.datasets.bar.backgroundColor = colourPalette;
 Chart.defaults.datasets.doughnut.backgroundColor = colourPalette;
+Chart.defaults.plugins.tooltip.footerAlign = "center";
 
 // MAKE GRAPHS
 
