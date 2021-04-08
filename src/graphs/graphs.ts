@@ -1,5 +1,5 @@
 import { Chart } from "chart.js";
-import { verb_log } from "../lib";
+import { DATABASE, verb_log } from "../lib";
 
 const graph = document.getElementById("chart")! as HTMLCanvasElement;
 const params = new URLSearchParams(new URL(document.URL).search);
@@ -12,8 +12,57 @@ const colourPalette = [
     'rgba(255, 159, 64, 1)'
 ];
 
-function createWebsiteRankChart(canvas: HTMLCanvasElement) {
+async function createWebsiteRankChart(canvas: HTMLCanvasElement) {
     verb_log("Requested website rank chart");
+    let labels: string[] = [];
+    let data: number[] = [];
+    await DATABASE.topThreeDomains()
+        .then(dts => dts.forEach(dt => {
+            console.log(dt);
+            labels.push(dt.domain);
+            data.push(dt.bytesExchanged);
+        }));
+    
+    new Chart(canvas, {
+        type: "bar",
+        data: {
+            labels,
+            datasets: [{
+                label: "I don't know how to get rid of this", // TODO
+                data,
+                backgroundColor: colourPalette,
+            }],
+        },
+        options: {
+            plugins: {
+                title: {
+                    display: true,
+                    text: "Top websites you've visited by tracking data exchanged",
+                },
+            },
+            scales: {
+                x: {
+                    title: {
+                        display: true,
+                        text: "Website domain",
+                        //align: "start", // TODO: (bug) this shouldn't make VSC angry
+                        font: {
+                            weight: "600",
+                        }
+                    }
+                },
+                y: {
+                    title: {
+                        display: true,
+                        text: "Bytes sent",
+                        font: {
+                            weight: "600",
+                        }
+                    }
+                }
+            }
+        }
+    });
 }
 
 /**
@@ -29,6 +78,37 @@ function createTopTrackersChart(canvas: HTMLCanvasElement, domain: string | null
 
     }
 }
+
+// GRAPH DEFAULTS
+// Title
+// TODO: (bug) Box gets bigger but font actually doesn't
+Chart.defaults.plugins.title.font.size = 48;
+Chart.defaults.plugins.title.font.weight = "800";
+Chart.defaults.plugins.title.align = "center";
+
+// TODO: defaults for axes labels
+
+// General
+// Don't maintain a set aspect ratio
+Chart.defaults.aspectRatio = 0; 
+Chart.defaults.font = {
+    // Copy font family string from Tailwind
+    family: "system-ui,\
+		-apple-system,\
+		'Segoe UI',\
+		Roboto,\
+		Helvetica,\
+		Arial,\
+		sans-serif,\
+		'Apple Color Emoji',\
+		'Segoe UI Emoji'",
+    size: 18,
+    style: "normal",
+    lineHeight: 1.2,
+    weight: "400",
+};
+
+// MAKE GRAPHS
 
 if (params.has("website-rank")) {
     createWebsiteRankChart(graph);
