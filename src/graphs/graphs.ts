@@ -16,7 +16,7 @@ async function createWebsiteRankChart(canvas: HTMLCanvasElement) {
     verb_log("Requested website rank chart");
     let labels: string[] = [];
     let data: number[] = [];
-    await DATABASE.topThreeDomains()
+    await DATABASE.topDomains(5)
         .then(dts => dts.forEach(dt => {
             console.log(dt);
             labels.push(dt.domain);

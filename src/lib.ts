@@ -121,14 +121,14 @@ class SiphonDatabase extends Dexie {
             .toArray();
     }
 
-    private getTopSomethingByBytesExchanged<T>(table: Dexie.Table<T>, number?: number): Promise<T[]> {
+    private getTopSomethingByBytesExchanged<T>(table: Dexie.Table<T>, number: number): Promise<T[]> {
         if (table.schema.idxByName["bytesExchanged"] === undefined) // TODO: check this works as intended
             return Promise.reject("Table given to getTopSomething doesn't have bytesExchanged indexed");
         else
             return table
                 .orderBy("bytesExchanged")
                 .reverse()
-                .limit(number ?? 3) // 3 by default
+                .limit(number)
                 .toArray();
     }
 
@@ -136,23 +136,23 @@ class SiphonDatabase extends Dexie {
      * Returns the top three trackers by data uploaded from this browsing session
      * i.e. from when the browser was opened until present
      */
-    topThreeTrackers(): Promise<ITrackerTotal[]> {
-        return this.getTopSomethingByBytesExchanged(this.trackerTotalsVolatile);
+    topTrackers(number: number): Promise<ITrackerTotal[]> {
+        return this.getTopSomethingByBytesExchanged(this.trackerTotalsVolatile, number);
     }
 
-    async topThreeTrackersOn(domain: string): Promise<ITrackerTotal[]> {
+    async topTrackersOn(domain: string, number: number): Promise<ITrackerTotal[]> {
         let domainTrackerTotals = await this.domainTrackerTotals
             .orderBy("bytesExchanged")
             .reverse()
             .filter(dtt => dtt.domain === domain)
-            .limit(3)
+            .limit(number)
             .toArray();
         // Surrounded in brackets as otherwise {} is taken as a code block
         return domainTrackerTotals.map(dtt => ({ hostname: dtt.trackerHostname, ...dtt }));
     }
 
-    topThreeDomains(): Promise<IDomainTotal[]> {
-        return this.getTopSomethingByBytesExchanged(this.domainTotals);
+    topDomains(number: number): Promise<IDomainTotal[]> {
+        return this.getTopSomethingByBytesExchanged(this.domainTotals, number);
     }
 
     async getNeighbouringRanks(domain: string): Promise<INeighbouringDomainTotals> {

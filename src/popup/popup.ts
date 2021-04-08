@@ -238,11 +238,11 @@ async function updatePopUp(proxyState: IProxyState) {
 
         // Top trackers
         topTrackersHeader.textContent = "Top trackers while your browser has been open";
-        await DATABASE.topThreeTrackers().then(formatTopTrackers);
+        await DATABASE.topTrackers(3).then(formatTopTrackers);
 
         // Top websites
         websiteRankHeader.textContent = "Top data farming websites";
-        let topDomains = await DATABASE.topThreeDomains();
+        let topDomains = await DATABASE.topDomains(3);
         formatTopWebsiteRanks(topDomains);
     } else {
         // There is an active session we can return contextual stats for
@@ -264,7 +264,7 @@ async function updatePopUp(proxyState: IProxyState) {
 
         // Top trackers on domain
         topTrackersHeader.textContent = "Top trackers for this site (all time)";
-        await DATABASE.topThreeTrackersOn(session.domain).then(formatTopTrackers);
+        await DATABASE.topTrackersOn(session.domain, 3).then(formatTopTrackers);
 
         // Website relative rank
         websiteRankHeader.textContent = "Website's rank in data uploaded";
