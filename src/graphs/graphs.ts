@@ -18,7 +18,6 @@ async function createWebsiteRankChart(canvas: HTMLCanvasElement) {
     let data: number[] = [];
     await DATABASE.topDomains(5)
         .then(dts => dts.forEach(dt => {
-            console.log(dt);
             labels.push(dt.domain);
             data.push(dt.bytesExchanged);
         }));
@@ -28,9 +27,7 @@ async function createWebsiteRankChart(canvas: HTMLCanvasElement) {
         data: {
             labels,
             datasets: [{
-                label: "I don't know how to get rid of this", // TODO
                 data,
-                backgroundColor: colourPalette,
             }],
         },
         options: {
@@ -69,14 +66,39 @@ async function createWebsiteRankChart(canvas: HTMLCanvasElement) {
  * Creates a pie chart showing all the top trackers for a particular domain
  * If domain is not supplied, show top trackers while browser has been open
  */
-function createTopTrackersChart(canvas: HTMLCanvasElement, domain: string | null) {
+async function createTopTrackersChart(canvas: HTMLCanvasElement, domain: string | null) {
+    let chartTitle: string;
     if (domain) {
+        chartTitle = `Top trackers for ${domain}`;
         verb_log(`Requested top trackers chart for ${domain}`);
-
     } else {
+        chartTitle = "Top trackers while browser has been open";
         verb_log("Requested top trackers chart while browser has been open");
-
     }
+
+    let labels: string[] = [];
+    let data: number[] = [];
+    let promise = domain ? DATABASE.topTrackersOn(domain, 5) : DATABASE.topTrackers(5);
+    await promise.then(tts => tts.forEach(tt => {
+        labels.push(tt.hostname);
+        data.push(tt.bytesExchanged);
+    }));
+    
+    // TODO: make the tooltips nicer
+    new Chart(canvas, {
+        type: "doughnut",
+        data: {
+            labels,
+            datasets: [{ data }],
+        },
+        /* TODO: make chart title show up
+        plugins: {
+            title: {
+                display: true,
+                text: chartTitle,
+            },
+        },*/
+    });
 }
 
 // GRAPH DEFAULTS
@@ -90,7 +112,7 @@ Chart.defaults.plugins.title.align = "center";
 
 // General
 // Don't maintain a set aspect ratio
-Chart.defaults.aspectRatio = 0; 
+Chart.defaults.maintainAspectRatio = false; 
 Chart.defaults.font = {
     // Copy font family string from Tailwind
     family: "system-ui,\
@@ -107,6 +129,9 @@ Chart.defaults.font = {
     lineHeight: 1.2,
     weight: "400",
 };
+
+Chart.defaults.datasets.bar.backgroundColor = colourPalette;
+Chart.defaults.datasets.doughnut.backgroundColor = colourPalette;
 
 // MAKE GRAPHS
 
