@@ -1,5 +1,7 @@
 .cache
+.ff-profile
 .parcel-cache
 dist
 build
 node_modules
+ship

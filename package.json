@@ -7,8 +7,12 @@
     "tsc": "tsc",
     "dev": "parcel watch src/manifest.json --target dev",
     "build": "rm -rf build/** && parcel build src/manifest.json --target prod",
-    "ff-dev": "web-ext run -s ./dist --pref devtools.toolbox.splitconsoleEnabled=true --start-url about:debugging#/runtime/this-firefox",
-    "ff-build": "web-ext run -s ./build --pref devtools.toolbox.splitconsoleEnabled=true --start-url about:debugging#/runtime/this-firefox",
+    "ff-dev": "web-ext run --source-dir ./dist --pref devtools.toolbox.splitconsoleEnabled=true --start-url about:debugging#/runtime/this-firefox --firefox-profile ./.ff-profile --profile-create-if-missing --keep-profile-changes",
+    "ff-build": "web-ext run --source-dir ./build --pref devtools.toolbox.splitconsoleEnabled=true --start-url about:debugging#/runtime/this-firefox --firefox-profile ./.ff-profile --profile-create-if-missing --keep-profile-changes",
+    "ff-ship": "npm run ff-package && npm run ff-sign",
+    "ff-package": "web-ext build --source-dir ./build --overwrite-dest --artifacts-dir ./ship",
+    "ff-sign": "web-ext sign --source-dir ./build --artifacts-dir ./ship --api-key $WEB_EXT_API_KEY --api-secret $WEB_EXT_API_SECRET",
+    "ff-lint": "web-ext lint --source-dir ./src",
     "clean": "rm -rf dist/** build/** .parcel-cache .cache"
   },
   "targets": {
