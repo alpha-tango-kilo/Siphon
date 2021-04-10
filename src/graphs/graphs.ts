@@ -1,4 +1,5 @@
 import { Chart } from "chart.js";
+import fileSize from "filesize";
 import { DATABASE, fileSizeString, getDomain, verb_err, verb_log } from "../lib";
 
 let currentChart: Chart<any>;
@@ -81,6 +82,28 @@ async function createWebsiteRankChart(canvas: HTMLCanvasElement) {
             data.push(dt.bytesExchanged);
         }));
     
+    /*
+        Lets try and find a suitable scale (kilobytes, megabytes, you get the idea)
+        We'll convert the second biggest element of data using filesize.js and see what exponent is used
+        Then we will convert all the others to the same exponent
+    */
+    let unit = "Bytes";
+    let shortUnit = "B";
+   
+    // This could probably be more efficient (less wasted work) if the iteration wasn't done in-place
+    if (data.length > 1) {
+        // https://github.com/avoidwork/filesize.js/issues/126
+        let { symbol, exponent } = fileSize(data[1], { output: "object", fullform: true, round: 1 }) as unknown as { value: number, symbol: string, exponent: number };
+        // Do it again to get the short unit
+        shortUnit = (fileSize(data[1], { output: "array" }) as unknown as [number, string])[1];
+        // Capitalise first letter of unit
+        unit = `${symbol[0].toUpperCase()}${symbol.substring(1)}`;
+
+        data = data.map((n, _, __) => (fileSize(n, { exponent, round: 1, output: "array"}) as unknown as [number, string])[0]);
+        console.log(data);
+    }
+    
+    
     currentChart = new Chart(canvas, {
         type: "bar",
         data: {
@@ -106,7 +129,7 @@ async function createWebsiteRankChart(canvas: HTMLCanvasElement) {
                         },
                         footer: tooltips => {
                             // Gets the number of bytes and formats it nicely
-                            return tooltips.map(tip => fileSizeString(tip.dataset.data[tip.dataIndex] as number));
+                            return tooltips.map(tip => `${tip.dataset.data[tip.dataIndex]} ${shortUnit}`);
                         },
                     },
                 }
@@ -116,7 +139,6 @@ async function createWebsiteRankChart(canvas: HTMLCanvasElement) {
                     title: {
                         display: true,
                         text: "Website domain",
-                        //align: "start", // TODO: (bug) this shouldn't make VSC angry
                         font: {
                             weight: "600",
                         }
@@ -125,7 +147,7 @@ async function createWebsiteRankChart(canvas: HTMLCanvasElement) {
                 y: {
                     title: {
                         display: true,
-                        text: "Bytes sent",
+                        text: `${unit} sent & received`,
                         font: {
                             weight: "600",
                         }
@@ -229,6 +251,7 @@ function setDropDown(type: GraphType) {
 // GRAPH DEFAULTS
 // Title
 // TODO: (bug) Box gets bigger but font actually doesn't
+// ^ https://github.com/chartjs/Chart.js/issues/8873
 Chart.defaults.plugins.title.font.size = 48;
 Chart.defaults.plugins.title.font.weight = "800";
 Chart.defaults.plugins.title.align = "center";
