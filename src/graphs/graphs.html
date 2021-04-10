@@ -8,7 +8,7 @@
 </head>
 
 <!-- Use lg: for when working with landscape layout, otherwise assume portrait/both -->
-<body class="p-4 grid lg:h-screen lg:space-x-5 lg:flex">
+<body class="p-4 grid lg:h-screen lg:space-x-5 lg:flex lg:divide-x-2 lg:divide-purple-200">
     <!-- Everything that's not the graph -->
     <div>
         <!-- Left/Top: Logo -->
@@ -27,29 +27,23 @@
                 <div>
                     <label for="graph-dropdown">Choose a graph to view</label>
                 </div>
-                <select name="graph-dropdown" class="dark:bg-gray-800 dark:border dark:border-gray-200">
+                <select name="graph-dropdown" class="dark:bg-gray-800 dark:border dark:border-gray-200 rounded-xl">
                     <option value="trackers">Top trackers per website</option>
                     <option value="rank">Websites that have shared the most data</option>
                 </select>
             </div>
         
-            <div class="pt-3 pb-5">
+            <div class="pt-3 pb-5 space-y-2">
                 <h2>Graph options</h2>
                 <div id="graph-options">
-                    <!-- To be set by script -->
-                    <ul>
-                        <li>Foo</li>
-                        <li>Bar</li>
-                        <li>Baz</li>
-                        <li>Qux</li>
-                    </ul>
+                    <!-- Things are programmatically added here by graphs.ts -->
                 </div>
             </div>
         </div>
     </div>
     
     <!-- Graph -->
-    <div class="order-2 lg:order-3 border-2 border-black flex-grow min-w-1/2 w-full min-h-lg">
+    <div class="order-2 lg:order-3 flex-grow min-w-1/2 w-full min-h-lg">
         <canvas id="chart"></canvas>
     </div>
 
