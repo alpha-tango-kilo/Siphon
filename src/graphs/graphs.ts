@@ -213,6 +213,16 @@ async function createTopTrackersChart(canvas: HTMLCanvasElement, domain: string 
                             return tooltips.map(tip => fileSizeString(tip.dataset.data[tip.dataIndex] as number));
                         },
                     },
+                },
+                legend: {
+                    position: "right",
+                    title: {
+                        display: true,
+                        text: "Tracking hosts",
+                        font: {
+                            weight: "600"
+                        }
+                    }
                 }
             }
         }
