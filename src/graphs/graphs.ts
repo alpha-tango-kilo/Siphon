@@ -67,6 +67,7 @@ function createChart(type: GraphType | undefined, canvas: HTMLCanvasElement, des
             return;
     }
 
+    setDropDown(type);
     updateOptionsPane(type);
 }
 
@@ -187,6 +188,7 @@ async function createTopTrackersChart(canvas: HTMLCanvasElement, domain: string 
 
 function updateOptionsPane(graph: GraphType) {
     const graphOptionsElement = document.getElementById("graph-options")!;
+    graphOptionsElement.innerHTML = "";
     switch (graph) {
         case GraphType.TopTrackers:
             graphOptionsElement.insertAdjacentHTML("beforeend", topTrackersOptions);
@@ -218,6 +220,10 @@ async function domainEntryBox(input: string) {
 // TODO: update the URL
 function onDropDownChange() {
     createChart(GraphType.fromString(dropdown.value), canvas, true);
+}
+
+function setDropDown(type: GraphType) {
+    dropdown.value = type;
 }
 
 // GRAPH DEFAULTS
@@ -253,6 +259,5 @@ Chart.defaults.datasets.doughnut.backgroundColor = colourPalette;
 Chart.defaults.plugins.tooltip.footerAlign = "center";
 
 // MAKE GRAPHS
-
 createChart(GraphType.fromURLSearchParams(params), canvas);
 dropdown.addEventListener("change", onDropDownChange);
