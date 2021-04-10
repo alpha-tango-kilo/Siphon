@@ -1,7 +1,8 @@
 import { Chart } from "chart.js";
-import { DATABASE, fileSizeString, verb_log } from "../lib";
+import { DATABASE, fileSizeString, getDomain, verb_err, verb_log } from "../lib";
 
-const graph = document.getElementById("chart")! as HTMLCanvasElement;
+let currentChart: Chart<any>;
+const canvas = document.getElementById("chart")! as HTMLCanvasElement;
 const params = new URLSearchParams(new URL(document.URL).search);
 const colourPalette = [
     'rgba(255, 99, 132, 1)',
@@ -11,6 +12,24 @@ const colourPalette = [
     'rgba(153, 102, 255, 1)',
     'rgba(255, 159, 64, 1)'
 ];
+
+const defaultOptions = "<p>No options to display for current graph!</p>";
+const topTrackersOptions = `
+<div>
+    <p class="pb-2">Domain to view graph for: </p>
+    <div class="flex space-x-2">
+        <form>
+            <input type="text" id="form-graph-domain" name="form-graph-domain" class="rounded-xl flex-grow">
+        </form>
+
+        <button type="button" id="graph-domain-button" class="border-2 rounded-xl p-1.5 border-purple-700 bg-purple-200 font-semibold">Go!</button>
+    </div>
+</div>`;
+
+const enum GraphType {
+    TopTrackers,
+    WebsiteRank,
+}
 
 async function createWebsiteRankChart(canvas: HTMLCanvasElement) {
     verb_log("Requested website rank chart");
@@ -22,7 +41,7 @@ async function createWebsiteRankChart(canvas: HTMLCanvasElement) {
             data.push(dt.bytesExchanged);
         }));
     
-    new Chart(canvas, {
+    currentChart = new Chart(canvas, {
         type: "bar",
         data: {
             labels,
@@ -99,7 +118,7 @@ async function createTopTrackersChart(canvas: HTMLCanvasElement, domain: string 
         data.push(tt.bytesExchanged);
     }));
     
-    new Chart(canvas, {
+    currentChart = new Chart(canvas, {
         type: "doughnut",
         data: {
             labels,
@@ -125,6 +144,35 @@ async function createTopTrackersChart(canvas: HTMLCanvasElement, domain: string 
             }
         }
     });
+}
+
+function updateOptionsPane(graph: GraphType) {
+    const graphOptionsElement = document.getElementById("graph-options")!;
+    switch (graph) {
+        case GraphType.TopTrackers:
+            graphOptionsElement.insertAdjacentHTML("beforeend", topTrackersOptions);
+            let button = document.getElementById("graph-domain-button")!;
+            let input = document.getElementById("form-graph-domain")! as HTMLInputElement;
+            button.addEventListener("click", _ => domainEntryBox(input.value));
+            break;
+        default:
+            graphOptionsElement.insertAdjacentHTML("afterbegin", defaultOptions);
+    } // doesn't need a default case as the error will have already been thrown
+}
+
+// TODO: present things more nicely than using an alert
+async function domainEntryBox(input: string) {
+    return DATABASE.domainTotals.get(input.trim())
+        .then(maybeDT => {
+            if (maybeDT === undefined) {
+                return Promise.reject("No tracking requests have been made while you've been on this domain (if you've even been on it)");
+            } else {
+                return maybeDT.domain;
+            }
+        }).then(domain => {
+            currentChart.destroy();
+            createTopTrackersChart(canvas, domain);
+        }).catch(err => alert(err));
 }
 
 // GRAPH DEFAULTS
@@ -161,8 +209,17 @@ Chart.defaults.plugins.tooltip.footerAlign = "center";
 
 // MAKE GRAPHS
 
-if (params.has("website-rank")) {
-    createWebsiteRankChart(graph);
-} else {
-    createTopTrackersChart(graph, params.get("top-trackers"));
+const graphType = params.has("website-rank") ? GraphType.WebsiteRank : GraphType.TopTrackers;
+
+switch (graphType) {
+    case GraphType.WebsiteRank:
+        createWebsiteRankChart(canvas);
+        break;
+    case GraphType.TopTrackers:
+        createTopTrackersChart(canvas, params.get("top-trackers"));
+        break;
+    default:
+        verb_err(`Unknown graph type: ${canvas}`);
 }
+
+updateOptionsPane(graphType);

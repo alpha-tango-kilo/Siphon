@@ -34,5 +34,7 @@ module.exports = {
     zIndex: false,
     resize: false,
   },
-  plugins: [],
+  plugins: [
+    require("@tailwindcss/forms"),
+  ],
 }
