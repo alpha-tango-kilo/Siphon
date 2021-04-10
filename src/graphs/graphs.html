@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="../siphon.css" />
 </head>
 
+<!-- TODO: dark theme support -->
 <!-- Use lg: for when working with landscape layout, otherwise assume portrait/both -->
 <body class="p-4 grid lg:h-screen lg:space-x-5 lg:flex lg:divide-x-2 lg:divide-purple-200">
     <!-- Everything that's not the graph -->
@@ -26,7 +27,7 @@
                 
                 <label for="graph-dropdown">Choose a graph to view</label>
                 <select name="graph-dropdown" id="graph-dropdown" class="dark:bg-gray-800 dark:border dark:border-gray-200 rounded-xl">
-                    <option value="top-trackers">Top trackers per website</option>
+                    <option value="top-trackers">Top trackers</option>
                     <option value="website-rank">Websites that have shared the most data</option>
                 </select>
             </div>
