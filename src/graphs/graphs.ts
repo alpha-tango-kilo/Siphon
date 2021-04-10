@@ -174,11 +174,22 @@ async function createTopTrackersChart(canvas: HTMLCanvasElement, domain: string 
 
     let labels: string[] = [];
     let data: number[] = [];
-    let promise = domain ? DATABASE.topTrackersOn(domain, 5) : DATABASE.topTrackers(5);
-    await promise.then(tts => tts.forEach(tt => {
-        labels.push(tt.hostname);
-        data.push(tt.bytesExchanged);
-    }));
+    let promise = domain ? DATABASE.topTrackersOn(domain, 1000) : DATABASE.topTrackers(1000);
+    await promise.then(tts => {
+        let count = 0;
+        tts.forEach(tt => {
+            if (count < 6) {
+                labels.push(tt.hostname);
+                data.push(tt.bytesExchanged);
+                count++;
+            } else {
+                data[5] += tt.bytesExchanged;
+            }
+            if (data.length === 6) {
+                labels[5] = "Other";
+            }
+        });
+    });
     
     currentChart = new Chart(canvas, {
         type: "doughnut",
