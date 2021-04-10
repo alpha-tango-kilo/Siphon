@@ -3,6 +3,7 @@ import { DATABASE, fileSizeString, getDomain, verb_err, verb_log } from "../lib"
 
 let currentChart: Chart<any>;
 const canvas = document.getElementById("chart")! as HTMLCanvasElement;
+const dropdown = document.getElementById("graph-dropdown")! as HTMLSelectElement;
 const params = new URLSearchParams(new URL(document.URL).search);
 const colourPalette = [
     'rgba(255, 99, 132, 1)',
@@ -26,9 +27,47 @@ const topTrackersOptions = `
     </div>
 </div>`;
 
-const enum GraphType {
-    TopTrackers,
-    WebsiteRank,
+enum GraphType {
+    TopTrackers = "top-trackers",
+    WebsiteRank = "website-rank",
+}
+
+// Makes it look like these are methods on the enum
+namespace GraphType {
+    export function fromURLSearchParams(params: URLSearchParams): GraphType | undefined {
+        for (let name of Object.values(GraphType)) {
+            if (params.has(name.toString())) {
+                return name as GraphType;
+            }
+        }
+        return undefined;
+    }
+
+    export function fromString(str: string): GraphType | undefined {
+        // Convert dashed-case to UpperCamel so we can cast
+        let camelCase = str.split("-")
+            .map((str, _, __) => `${str[0].toUpperCase()}${str.substring(1)}`)
+            .join("");
+        return (<any>GraphType)[camelCase];
+    }
+}
+
+function createChart(type: GraphType | undefined, canvas: HTMLCanvasElement, destroy: boolean = false) {
+    if (destroy && type !== undefined) currentChart.destroy();
+
+    switch (type) {
+        case GraphType.WebsiteRank:
+            createWebsiteRankChart(canvas);
+            break;
+        case GraphType.TopTrackers:
+            createTopTrackersChart(canvas, params.get(type));
+            break;
+        default:
+            verb_err(`Unknown graph type requested`);
+            return;
+    }
+
+    updateOptionsPane(type);
 }
 
 async function createWebsiteRankChart(canvas: HTMLCanvasElement) {
@@ -161,6 +200,7 @@ function updateOptionsPane(graph: GraphType) {
 }
 
 // TODO: present things more nicely than using an alert
+// TODO: update the URL
 async function domainEntryBox(input: string) {
     return DATABASE.domainTotals.get(input.trim())
         .then(maybeDT => {
@@ -173,6 +213,11 @@ async function domainEntryBox(input: string) {
             currentChart.destroy();
             createTopTrackersChart(canvas, domain);
         }).catch(err => alert(err));
+}
+
+// TODO: update the URL
+function onDropDownChange() {
+    createChart(GraphType.fromString(dropdown.value), canvas, true);
 }
 
 // GRAPH DEFAULTS
@@ -209,17 +254,5 @@ Chart.defaults.plugins.tooltip.footerAlign = "center";
 
 // MAKE GRAPHS
 
-const graphType = params.has("website-rank") ? GraphType.WebsiteRank : GraphType.TopTrackers;
-
-switch (graphType) {
-    case GraphType.WebsiteRank:
-        createWebsiteRankChart(canvas);
-        break;
-    case GraphType.TopTrackers:
-        createTopTrackersChart(canvas, params.get("top-trackers"));
-        break;
-    default:
-        verb_err(`Unknown graph type: ${canvas}`);
-}
-
-updateOptionsPane(graphType);
+createChart(GraphType.fromURLSearchParams(params), canvas);
+dropdown.addEventListener("change", onDropDownChange);
