@@ -108,9 +108,7 @@ async function createWebsiteRankChart(canvas: HTMLCanvasElement) {
         type: "bar",
         data: {
             labels,
-            datasets: [{
-                data,
-            }],
+            datasets: [{ data }],
         },
         options: {
             plugins: {
@@ -241,13 +239,13 @@ function updateOptionsPane(graph: GraphType) {
             break;
         default:
             graphOptionsElement.insertAdjacentHTML("afterbegin", defaultOptions);
-    } // doesn't need a default case as the error will have already been thrown
+    }
 }
 
 // TODO: present things more nicely than using an alert
 // TODO: update the URL
 async function domainEntryBox(input: string) {
-    return DATABASE.domainTotals.get(input.trim())
+    return DATABASE.domainTotals.get(input.trim().toLowerCase())
         .then(maybeDT => {
             if (maybeDT === undefined) {
                 return Promise.reject("No tracking requests have been made while you've been on this domain (if you've even been on it)");
@@ -270,37 +268,29 @@ function setDropDown(type: GraphType) {
 }
 
 // GRAPH DEFAULTS
-// Title
-// TODO: (bug) Box gets bigger but font actually doesn't
-// ^ https://github.com/chartjs/Chart.js/issues/8873
-Chart.defaults.plugins.title.font.size = 48;
-Chart.defaults.plugins.title.font.weight = "800";
-Chart.defaults.plugins.title.align = "center";
-
-// TODO: defaults for axes labels
-
-// General
-// Don't maintain a set aspect ratio
-Chart.defaults.maintainAspectRatio = false; 
 Chart.defaults.font = {
     // Copy font family string from Tailwind
     family: "system-ui,\
-		-apple-system,\
-		'Segoe UI',\
-		Roboto,\
-		Helvetica,\
-		Arial,\
-		sans-serif,\
-		'Apple Color Emoji',\
-		'Segoe UI Emoji'",
+    -apple-system,\
+    'Segoe UI',\
+    Roboto,\
+    Helvetica,\
+    Arial,\
+    sans-serif,\
+    'Apple Color Emoji',\
+    'Segoe UI Emoji'",
     size: 18,
     style: "normal",
     lineHeight: 1.2,
     weight: "400",
 };
+Chart.defaults.maintainAspectRatio = false; 
 Chart.defaults.datasets.bar.backgroundColor = colourPalette;
 Chart.defaults.datasets.doughnut.backgroundColor = colourPalette;
 Chart.defaults.plugins.tooltip.footerAlign = "center";
+Chart.defaults.plugins.title.font.size = 28;
+Chart.defaults.plugins.title.font.weight = "600";
+Chart.defaults.plugins.title.align = "center";
 
 // MAKE GRAPHS
 createChart(GraphType.fromURLSearchParams(params), canvas);
