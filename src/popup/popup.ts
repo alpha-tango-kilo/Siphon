@@ -119,6 +119,7 @@ async function requestActiveDomainSession(tabID?: number) {
     }
     
     backgroundScript.postMessage(tabID);
+    if (browser.runtime.lastError) console.debug("We're getting errors from the pop-up too");
 }
 
 /**
