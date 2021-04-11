@@ -1,6 +1,19 @@
-import { Chart } from "chart.js";
+import { ArcElement, BarController, BarElement, CategoryScale, Chart, DoughnutController, Legend, LinearScale, Title, Tooltip } from "chart.js";
 import fileSize from "filesize";
 import { DATABASE, fileSizeString, verb_err, verb_log } from "../lib";
+
+// https://www.chartjs.org/docs/latest/getting-started/integration.html#bundlers-webpack-rollup-etc
+Chart.register(
+    ArcElement,
+    BarElement,
+    BarController,
+    CategoryScale,
+    DoughnutController,
+    Legend,
+    LinearScale,
+    Title,
+    Tooltip,
+);
 
 let currentChart: Chart<any>;
 const canvas = document.getElementById("chart")! as HTMLCanvasElement;
@@ -108,7 +121,10 @@ async function createWebsiteRankChart(canvas: HTMLCanvasElement) {
         type: "bar",
         data: {
             labels,
-            datasets: [{ data }],
+            datasets: [{
+                data,
+                backgroundColor: colourPalette, // See the TODO in the defaults section
+            }],
         },
         options: {
             plugins: {
@@ -193,7 +209,10 @@ async function createTopTrackersChart(canvas: HTMLCanvasElement, domain: string 
         type: "doughnut",
         data: {
             labels,
-            datasets: [{ data }],
+            datasets: [{
+                data,
+                backgroundColor: colourPalette, // See the TODO in the defaults section
+            }],
         },
         options: {
             plugins: {
@@ -284,9 +303,13 @@ Chart.defaults.font = {
     lineHeight: 1.2,
     weight: "400",
 };
-Chart.defaults.maintainAspectRatio = false; 
-Chart.defaults.datasets.bar.backgroundColor = colourPalette;
-Chart.defaults.datasets.doughnut.backgroundColor = colourPalette;
+Chart.defaults.maintainAspectRatio = false;
+
+// TODO: causes undefined errors in build:
+// Uncaught TypeError: no.defaults.datasets.bar is undefined
+//Chart.defaults.datasets.bar.backgroundColor = colourPalette;
+// Uncaught TypeError: no.defaults.datasets.doughnut is undefined
+//Chart.defaults.datasets.doughnut.backgroundColor = colourPalette;
 Chart.defaults.plugins.tooltip.footerAlign = "center";
 Chart.defaults.plugins.title.font.size = 28;
 Chart.defaults.plugins.title.font.weight = "600";
