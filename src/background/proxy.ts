@@ -1,4 +1,4 @@
-import { browser, WebRequest } from "webextension-polyfill-ts";
+import { browser, Runtime, WebRequest } from "webextension-polyfill-ts";
 import { getDomain, getHostname, verb_log, FLAGGED_HOSTS, DATABASE, IActiveDomainSession, ActiveDomainSession, fileSizeString, CONNECTION_NAME } from "../lib";
 
 const START_TIME = Date.now();
@@ -131,18 +131,29 @@ let activeDomainSessions: Map<number, IActiveDomainSession> = new Map();
  * Listen for a connection being made from the pop-up
  * If it's the pop-up add a listener that will send an up-to-date IProxyState
  */
+
+const portMessageListener = (message: any, port: Runtime.Port) => {
+    let tabID = parseInt(message);
+    let focussedSession = activeDomainSessions.get(tabID);
+
+    port.postMessage({
+        startupTime: START_TIME,
+        // Change undefined to null
+        focussedSession: focussedSession ?? null,
+        currentSessions: activeDomainSessions,
+    });
+    if (browser.runtime.lastError) {
+        verb_log("Remove listener from unreachable port");
+        port.onMessage.removeListener(portMessageListener);
+    };
+};
+
 browser.runtime.onConnect.addListener(port => {
     if (port.name !== CONNECTION_NAME) return;
-    port.onMessage.addListener((message, port) => {
-        let tabID = parseInt(message);
-        let focussedSession = activeDomainSessions.get(tabID);
-
-        port.postMessage({
-            startupTime: START_TIME,
-            // Change undefined to null
-            focussedSession: focussedSession ? focussedSession : null,
-            currentSessions: activeDomainSessions,
-        });
+    port.onMessage.addListener(portMessageListener);
+    port.onDisconnect.addListener(_ => {
+        verb_log("Detected disconnect of port, removing listening");
+        port.onMessage.removeListener(portMessageListener);
     });
 });
 
