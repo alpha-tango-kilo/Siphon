@@ -58,7 +58,7 @@ async function recordRequest(requestDetails: WebRequest.OnCompletedDetailsType) 
         hostname,
                 bytesExchanged,
             });
-            verb_log("Updated tracker requests")
+            verb_log("Updated tracker requests");
 
             // Domain tracker total
             //verb_log(`Requesting "[${activeDomainSession.domain},${hostname}]" from domainTrackerTotals`);
