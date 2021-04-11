@@ -1,6 +1,6 @@
 import { Chart } from "chart.js";
 import fileSize from "filesize";
-import { DATABASE, fileSizeString, getDomain, verb_err, verb_log } from "../lib";
+import { DATABASE, fileSizeString, verb_err, verb_log } from "../lib";
 
 let currentChart: Chart<any>;
 const canvas = document.getElementById("chart")! as HTMLCanvasElement;
