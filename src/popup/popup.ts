@@ -22,6 +22,7 @@ const websiteRankIcon = document.getElementById("website-rank-icon")!;
 // undefined will cause the connection to be made to the extension's own background script
 // https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/runtime/connect
 const backgroundScript = browser.runtime.connect(undefined, { name: CONNECTION_NAME });
+if (browser.runtime.lastError) console.debug("Background script connecting is causing errors");
 
 // INITIALISATION FUNCTIONS
 
@@ -117,9 +118,8 @@ async function requestActiveDomainSession(tabID?: number) {
         if (activeTab.id === undefined) return;
         tabID = activeTab.id;
     }
-    
+    // Doesn't appear to error 👌🏼
     backgroundScript.postMessage(tabID);
-    if (browser.runtime.lastError) console.debug("We're getting errors from the pop-up too");
 }
 
 /**
