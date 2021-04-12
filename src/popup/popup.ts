@@ -108,7 +108,7 @@ async function updateTrackerGraphIconHref(): Promise<void> {
 // POP-UP INFORMATION
 
 async function getActiveTab(): Promise<Tabs.Tab> {
-    return browser.tabs.query({ active: true })
+    return browser.tabs.query({ active: true, currentWindow: true })
         .then(tabList => tabList[0]);
 }
 
