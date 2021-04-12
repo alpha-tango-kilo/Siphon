@@ -2,7 +2,7 @@
     "manifest_version": 2,
     "name": "Siphon",
     "description": "Monitors traffic to data collecting domains",
-    "version": "1.0.2",
+    "version": "1.0.3",
     "icons": {
         "48": "icons/siphon.svg",
         "96": "icons/siphon.svg"

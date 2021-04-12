@@ -1,6 +1,6 @@
 {
   "name": "siphon",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Monitors traffic to data collecting domains",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
