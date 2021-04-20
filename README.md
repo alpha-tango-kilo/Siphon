@@ -25,6 +25,8 @@ The following tasks are available (`npm run <task>`):
 * `build` - uses Parcel to create a production build of the extension in `./build`
 * `ff-dev` (**requires `web-ext`**) - opens a Firefox sandbox with Siphon loaded, intended to used concurrently with `dev`
 * `ff-build` (**requires `web-ext`**) - opens a Firefox sandbox with Siphon loaded, to test a final build
+* `ff-package` (**requires `web-ext`**) - zips up a build from `./build` for distribution / uploading to the Add-on store
+* `ff-lint` (**requires `web-ext`**) - lints the source code against Mozilla's code recommendations
 * `clean` - deletes the contents of `./dist` and `./build`, as well as Node & Parcel caches (`.cache` & `.parcel-cache`)
 
-Both `build` and `clean` require the `rm` command to be available and so will not work out of the box on Windows.
+The `clean` command requires the `rm` command to be available and so will not work out of the box on Windows.
